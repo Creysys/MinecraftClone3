@@ -21,31 +21,13 @@ namespace MinecraftClone3.Utils
             BlockFace.Top, BlockFace.Back, BlockFace.Front
         };
 
-        public static Vector3 GetNormal(this BlockFace face)
+        private static readonly Vector3i[] Normals =
         {
-            var v = face.GetNormali();
-            return new Vector3(v.X, v.Y, v.Z);
-        }
+            new Vector3i(-1, 0, 0), new Vector3i(+1, 0, 0), new Vector3i(0, -1, 0),
+            new Vector3i(0, +1, 0), new Vector3i(0, 0, -1), new Vector3i(0, 0, +1)
+        };
 
-        public static Vector3i GetNormali(this BlockFace face)
-        {
-            switch (face)
-            {
-                case BlockFace.Left:
-                    return new Vector3i(-1, 0, 0);
-                case BlockFace.Right:
-                    return new Vector3i(+1, 0, 0);
-                case BlockFace.Bottom:
-                    return new Vector3i(0, -1, 0);
-                case BlockFace.Top:
-                    return new Vector3i(0, +1, 0);
-                case BlockFace.Back:
-                    return new Vector3i(0, 0, -1);
-                case BlockFace.Front:
-                    return new Vector3i(0, 0, +1);
-                default:
-                    throw new Exception("Invalid BlockFace!");
-            }
-        }
+        public static Vector3 GetNormal(this BlockFace face) => face.GetNormali().ToVector3();
+        public static Vector3i GetNormali(this BlockFace face) => Normals[(int) face];
     }
 }

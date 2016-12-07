@@ -9,20 +9,65 @@ namespace MinecraftClone3.Blocks
 {
     internal class World
     {
-        public const int MaxChunkUploads = 1;
-        public const int RegionSize = 8 * Chunk.Size;
+        public const int MaxChunkUpdates = 6;
+        public const int RegionSize = 64 * Chunk.Size;
         public const int RegionSizeSquared = RegionSize * RegionSize;
         public const int ChunksPerRegion = RegionSize / Chunk.Size;
-         
-        public static readonly int MaxAsyncChunkUpdates = Environment.ProcessorCount*4;
+
+        public static readonly TimeSpan ChunkLifetime = TimeSpan.FromSeconds(5);
+
+        private readonly Queue<CachedChunk> _chunksReadyToAdd = new Queue<CachedChunk>();
+        private readonly Queue<Chunk> _chunksReadyToRemove = new Queue<Chunk>();
+
+        private readonly Queue<Chunk> _chunksReadyToUploadHp = new Queue<Chunk>();
+        private readonly Queue<Chunk> _chunksReadyToUploadLp = new Queue<Chunk>();
+        private readonly Thread _loadThread;
+        private readonly HashSet<Vector3i> _populatedChunks = new HashSet<Vector3i>();
+
+        private readonly Queue<Chunk> _queuedChunkUpdatesHp = new Queue<Chunk>();
+        private readonly Queue<Chunk> _queuedChunkUpdatesLp = new Queue<Chunk>();
+
+        private readonly Dictionary<Vector3i, DateTime> _regionTimers = new Dictionary<Vector3i, DateTime>();
+        private readonly Thread _unloadThread;
+
+        private readonly Thread _updateThread;
+
+        public readonly Dictionary<Vector3i, Chunk> LoadedChunks = new Dictionary<Vector3i, Chunk>();
+
+        private bool _unloaded;
+
+        public World()
+        {
+            _updateThread = new Thread(UpdateThread);
+            _unloadThread = new Thread(UnloadThread);
+            _loadThread = new Thread(LoadThread);
+
+            _updateThread.Start();
+            _unloadThread.Start();
+            _loadThread.Start();
+        }
+
+        public int ChunksQueuedCount => _queuedChunkUpdatesHp.Count + _queuedChunkUpdatesLp.Count;
+        public int ChunksReadyCount => _chunksReadyToUploadHp.Count + _chunksReadyToUploadLp.Count;
+        public int ChunksLoadedCount => LoadedChunks.Count;
+
+        public static Vector3i ChunkToRegion(Vector3i v) => RegionInWorld(v * Chunk.Size);
 
         public static Vector3i RegionInWorld(Vector3i v) => RegionInWorld(v.X, v.Y, v.Z);
+
+        public static Vector3i ChunkInRegion(Vector3i v) => ChunkInRegion(v.X, v.Y, v.Z);
+        public static Vector3i ChunkInRegion(int x, int y, int z) => new Vector3i(
+            x < 0 ? (x + 1) % ChunksPerRegion + ChunksPerRegion - 1 : x % ChunksPerRegion,
+            y < 0 ? (y + 1) % ChunksPerRegion + ChunksPerRegion - 1 : y % ChunksPerRegion,
+            z < 0 ? (z + 1) % ChunksPerRegion + ChunksPerRegion - 1 : z % ChunksPerRegion);
+
         public static Vector3i RegionInWorld(int x, int y, int z) => new Vector3i(
             x < 0 ? (x + 1) / RegionSize - 1 : x / RegionSize,
             y < 0 ? (y + 1) / RegionSize - 1 : y / RegionSize,
             z < 0 ? (z + 1) / RegionSize - 1 : z / RegionSize);
 
         public static Vector3i ChunkInWorld(Vector3i v) => ChunkInWorld(v.X, v.Y, v.Z);
+
         public static Vector3i ChunkInWorld(int x, int y, int z) => new Vector3i(
             x < 0 ? (x + 1) / Chunk.Size - 1 : x / Chunk.Size,
             y < 0 ? (y + 1) / Chunk.Size - 1 : y / Chunk.Size,
@@ -32,28 +77,6 @@ namespace MinecraftClone3.Blocks
             x < 0 ? (x + 1) % Chunk.Size + Chunk.Size - 1 : x % Chunk.Size,
             y < 0 ? (y + 1) % Chunk.Size + Chunk.Size - 1 : y % Chunk.Size,
             z < 0 ? (z + 1) % Chunk.Size + Chunk.Size - 1 : z % Chunk.Size);
-
-        public readonly Dictionary<Vector3i, Chunk> LoadedChunks = new Dictionary<Vector3i, Chunk>();
-
-        public int ChunksQueuedCount => _queuedChunkUpdatesHp.Count + _queuedChunkUpdatesLp.Count;
-        public int ChunksReadyCount => _chunksReadyToUploadHp.Count + _chunksReadyToUploadLp.Count;
-        public int ChunksLoadedCount => LoadedChunks.Count;
-        public int ChunkThreadsCount => _chunkThreadCount;
-
-        private readonly List<Vector3i> _loadedRegions = new List<Vector3i>();
-
-        private readonly Queue<Chunk> _queuedChunkUpdatesHp = new Queue<Chunk>();
-        private readonly Queue<Chunk> _queuedChunkUpdatesLp = new Queue<Chunk>();
-
-        private readonly Queue<Chunk> _chunksReadyToUploadHp = new Queue<Chunk>();
-        private readonly Queue<Chunk> _chunksReadyToUploadLp = new Queue<Chunk>();
-
-        private readonly Queue<ChunkCache> _regionsReadyToAdd = new Queue<ChunkCache>();
-        private readonly Queue<Vector3i> _regionsReadyToRemove = new Queue<Vector3i>();
-
-
-        private int _chunkThreadCount;
-        private bool _unloaded;
 
         public void SetBlock(Vector3i blockPos, uint id) => SetBlock(blockPos.X, blockPos.Y, blockPos.Z, id);
         public void SetBlock(int x, int y, int z, uint id) => SetBlock(x, y, z, id, true, false);
@@ -74,10 +97,9 @@ namespace MinecraftClone3.Blocks
 
             if (!update) return;
 
-            QueueChunkUpdate(chunk, lowPriority);
             if (blockInChunk.X == 0)
                 QueueChunkUpdate(chunkInWorld + new Vector3i(-1, 0, 0), lowPriority);
-            else if (blockInChunk.X == Chunk.Size-1)
+            else if (blockInChunk.X == Chunk.Size - 1)
                 QueueChunkUpdate(chunkInWorld + new Vector3i(+1, 0, 0), lowPriority);
             if (blockInChunk.Y == 0)
                 QueueChunkUpdate(chunkInWorld + new Vector3i(0, -1, 0), lowPriority);
@@ -87,9 +109,11 @@ namespace MinecraftClone3.Blocks
                 QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, -1), lowPriority);
             else if (blockInChunk.Z == Chunk.Size - 1)
                 QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, +1), lowPriority);
+            QueueChunkUpdate(chunk, lowPriority);
         }
 
         public uint GetBlock(Vector3i blockPos) => GetBlock(blockPos.X, blockPos.Y, blockPos.Z);
+
         public uint GetBlock(int x, int y, int z)
         {
             var chunkInWorld = ChunkInWorld(x, y, z);
@@ -102,26 +126,73 @@ namespace MinecraftClone3.Blocks
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
         {
-            if(LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
+            if (LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
                 QueueChunkUpdate(chunk, lowPrioriity);
         }
 
         public void QueueChunkUpdate(Chunk chunk, bool lowPrioriity)
         {
-            chunk.InterruptUpdate();
-
             var queue = lowPrioriity ? _queuedChunkUpdatesLp : _queuedChunkUpdatesHp;
-            queue.Enqueue(chunk);
+            lock (queue)
+            {
+                if (!queue.Contains(chunk)) queue.Enqueue(chunk);
+            }
         }
 
         public void Update()
         {
             if (_unloaded) return;
+            
+            var actions = 0;
+            Chunk chunk;
+            while (actions < MaxChunkUpdates && _chunksReadyToUploadHp.Count > 0)
+            {
+                lock (_chunksReadyToUploadHp)
+                {
+                    chunk = _chunksReadyToUploadHp.Dequeue();
+                }
+                chunk.Upload();
+                actions++;
+            }
 
-            UnloadChunks(false);
-            LoadChunks();
+            if (actions < MaxChunkUpdates && _chunksReadyToUploadLp.Count > 0)
+            {
+                lock (_chunksReadyToUploadLp)
+                {
+                    chunk = _chunksReadyToUploadLp.Dequeue();
+                }
+                chunk.Upload();
+                actions++;
+            }
 
-            UpdateChunks();
+            if (actions < MaxChunkUpdates && _chunksReadyToRemove.Count > 0)
+            {
+                lock (_chunksReadyToRemove)
+                {
+                    chunk = _chunksReadyToRemove.Dequeue();
+                }
+                LoadedChunks.Remove(chunk.Position);
+                _populatedChunks.Remove(chunk.Position);
+                chunk.Dispose();
+                actions++;
+            }
+
+            while (actions < MaxChunkUpdates && _chunksReadyToAdd.Count > 0)
+            {
+                CachedChunk cachedChunk;
+                lock (_chunksReadyToAdd)
+                {
+                    cachedChunk = _chunksReadyToAdd.Dequeue();
+                }
+                chunk = new Chunk(cachedChunk);
+                LoadedChunks.Add(chunk.Position, chunk);
+
+                QueueChunkUpdate(chunk, true);
+                foreach (var face in BlockFaceHelper.Faces)
+                    QueueChunkUpdate(chunk.Position + face.GetNormali(), true);
+
+                actions++;
+            }
         }
 
         public BlockRaytraceResult BlockRaytrace(Vector3 position, Vector3 direction, float range)
@@ -186,125 +257,140 @@ namespace MinecraftClone3.Blocks
         public void Unload()
         {
             _unloaded = true;
-            Logger.Info("Saving world...");
-            while (LoadedChunks.Count > 0)
-            {
-                UnloadChunks(true);
+
+            Logger.Info("Waiting for threads to finish...");
+            while (_loadThread.IsAlive || _unloadThread.IsAlive || _updateThread.IsAlive)
                 Thread.Sleep(100);
-            }
+
+            Logger.Info("Saving world...");
+            foreach (var entry in _regionTimers)
+                WorldSerializer.SaveRegion(this, entry.Key);
             Logger.Info("World saved");
         }
 
 
-        private void LoadChunks()
+        private void UpdateThread()
         {
-            var playerRegion = RegionInWorld(PlayerController.Camera.Position.ToVector3i());
-            for (var x = -1; x <= 1; x++)
-            for (var y = -1; y <= 1; y++)
-            for (var z = -1; z <= 1; z++)
+            // ReSharper disable once TooWideLocalVariableScope
+            Chunk chunk;
+            while (!_unloaded)
             {
-                var regionPos = playerRegion + new Vector3i(x, y, z);
-                if (_loadedRegions.Contains(regionPos)) continue;
-                _loadedRegions.Add(regionPos);
-
-                ThreadPool.QueueUserWorkItem(state =>
+                while (_queuedChunkUpdatesHp.Count > 0)
                 {
-                    var cache = new ChunkCache(this);
-                    LoadRegion(cache, regionPos, regionPos * RegionSize,
-                        regionPos * RegionSize + new Vector3i(RegionSize - 1));
-                    lock (_regionsReadyToAdd) _regionsReadyToAdd.Enqueue(cache);
-                });
-            }
-        }
-
-        private void UnloadChunks(bool unloadAll)
-        {
-            var regionsToUnload = new Stack<Vector3i>();
-
-            var playerRegion = RegionInWorld(PlayerController.Camera.Position.ToVector3i());
-            foreach (var region in _loadedRegions)
-            {
-                var v = region - playerRegion;
-                if (!unloadAll && v.X >= -2 && v.X <= 2 && v.Y >= -2 && v.Y <= 2 && v.Z >= -2 && v.Z <= 2) continue;
-
-                regionsToUnload.Push(region);
-                ThreadPool.QueueUserWorkItem(state =>
-                {
-                    SaveRegion(region);
-                    lock (_regionsReadyToRemove) _regionsReadyToRemove.Enqueue(region);
-                });
-            }
-
-            while (regionsToUnload.Count > 0)
-                _loadedRegions.Remove(regionsToUnload.Pop());
-
-            while (_regionsReadyToRemove.Count > 0)
-            {
-                Vector3i region;
-                lock (_regionsReadyToRemove) region = _regionsReadyToRemove.Dequeue();
-                var chunkMinPos = ChunkInWorld(region * RegionSize);
-                for (var x = 0; x < ChunksPerRegion; x++)
-                for (var y = 0; y < ChunksPerRegion; y++)
-                for (var z = 0; z < ChunksPerRegion; z++)
-                {
-                    var key = chunkMinPos + new Vector3i(x, y, z);
-                    if (!LoadedChunks.TryGetValue(key, out Chunk chunk)) continue;
-
-                    chunk.Dispose();
-                    LoadedChunks.Remove(key);
+                    lock (_queuedChunkUpdatesHp)
+                    {
+                        chunk = _queuedChunkUpdatesHp.Dequeue();
+                    }
+                    chunk.Update();
+                    lock (_chunksReadyToUploadHp)
+                    {
+                        if (!_chunksReadyToUploadHp.Contains(chunk)) _chunksReadyToUploadHp.Enqueue(chunk);
+                    }
                 }
-            }
-        }
 
-        private void SaveRegion(Vector3i region)
-        {
-            WorldSerializer.SaveRegion(this, region);
-        }
-
-        private void LoadRegion(ChunkCache cache, Vector3i region, Vector3i worldMin, Vector3i worldMax)
-        {
-            if (WorldSerializer.LoadRegion(cache, region))
-                return;
-
-            if (worldMin.Y != 0) return;
-
-            for (var x = worldMin.X; x <= worldMax.X; x++)
-            for (var z = worldMin.Z; z <= worldMax.Z; z++)
-                cache.SetBlock(x, 0, z, 1);
-        }
-
-        private void UpdateChunks()
-        {
-            UploadChunkQueue(_chunksReadyToUploadHp, 6);
-            UploadChunkQueue(_chunksReadyToUploadLp, MaxChunkUploads);
-
-            UpdateChunkQueue(_queuedChunkUpdatesHp, _chunksReadyToUploadHp);
-            UpdateChunkQueue(_queuedChunkUpdatesLp, _chunksReadyToUploadLp);
-
-            lock(_regionsReadyToAdd) if (_regionsReadyToAdd.Count > 0) _regionsReadyToAdd.Dequeue().AddToWorldAndUpdate();
-        }
-
-        private void UploadChunkQueue(Queue<Chunk> queue, int max)
-        {
-            for (var i = 0; queue.Count > 0 && i < max; i++)
-                lock (queue) queue.Dequeue().Upload();
-        }
-
-        private void UpdateChunkQueue(Queue<Chunk> queue, Queue<Chunk> uploadQueue)
-        {
-            while (queue.Count > 0 && _chunkThreadCount < MaxAsyncChunkUpdates)
-            {
-                var chunk = queue.Dequeue();
-                Interlocked.Increment(ref _chunkThreadCount);
-                ThreadPool.QueueUserWorkItem(state =>
+                if (_queuedChunkUpdatesLp.Count <= 0) continue;
+                lock (_queuedChunkUpdatesLp)
                 {
-                    if (chunk.Update())
-                        lock (uploadQueue)
-                            if (!uploadQueue.Contains(chunk)) uploadQueue.Enqueue(chunk);
+                    chunk = _queuedChunkUpdatesLp.Dequeue();
+                }
+                chunk.Update();
+                lock (_chunksReadyToUploadLp)
+                {
+                    if (!_chunksReadyToUploadLp.Contains(chunk)) _chunksReadyToUploadLp.Enqueue(chunk);
+                }
 
-                    Interlocked.Decrement(ref _chunkThreadCount);
-                });
+                Thread.Sleep(10);
             }
+        }
+
+        private void UnloadThread()
+        {
+            while (!_unloaded)
+            {
+                var regionsToRemove = new Stack<Vector3i>();
+                lock (_regionTimers)
+                {
+                    foreach (var entry in _regionTimers)
+                        if (DateTime.Now - entry.Value >= ChunkLifetime)
+                            regionsToRemove.Push(entry.Key);
+                }
+
+                while (regionsToRemove.Count > 0)
+                {
+                    var region = regionsToRemove.Pop();
+
+                    WorldSerializer.SaveRegion(this, region);
+
+                    var chunkMinPos = ChunkInWorld(region * RegionSize);
+                    for (var x = 0; x < ChunksPerRegion; x++)
+                    for (var y = 0; y < ChunksPerRegion; y++)
+                    for (var z = 0; z < ChunksPerRegion; z++)
+                    {
+                        var chunkPos = chunkMinPos + new Vector3i(x, y, z);
+                        if (LoadedChunks.ContainsKey(chunkPos))
+                            _chunksReadyToRemove.Enqueue(LoadedChunks[chunkPos]);
+                    }
+
+                    lock (_regionTimers)
+                    {
+                        _regionTimers.Remove(region);
+                    }
+                }
+
+                Thread.Sleep(10);
+            }
+        }
+
+        private void LoadThread()
+        {
+            while (!_unloaded)
+            {
+                //Load 3x3 chunks around player
+                var playerChunk = ChunkInWorld(PlayerController.Camera.Position.ToVector3i());
+                for (var x = -1; x <= 1; x++)
+                for (var y = -1; y <= 1; y++)
+                for (var z = -1; z <= 1; z++)
+                {
+                    var chunkPos = playerChunk + new Vector3i(x, y, z);
+
+                    //Reset region unload timer
+                    lock (_regionTimers)
+                    {
+                        _regionTimers[ChunkToRegion(chunkPos)] = DateTime.Now;
+                    }
+
+                    if (_populatedChunks.Contains(chunkPos)) continue;
+                    _populatedChunks.Add(chunkPos);
+
+                    var chunk = LoadChunk(chunkPos);
+                    lock (_chunksReadyToAdd)
+                    {
+                        _chunksReadyToAdd.Enqueue(chunk);
+                    }
+                }
+
+                //TODO: Load player view frustum
+
+                Thread.Sleep(10);
+            }
+        }
+
+        private CachedChunk LoadChunk(Vector3i position)
+        {
+            var chunk = WorldSerializer.LoadChunk(this, position);
+            if (chunk != null) return chunk;
+
+            chunk = new CachedChunk(this, position);
+            var worldMin = position * Chunk.Size;
+            var worldMax = worldMin + new Vector3i(Chunk.Size - 1);
+
+            for (var x = 0; x < Chunk.Size; x++)
+            for (var y = 0; y < Chunk.Size; y++)
+            for (var z = 0; z < Chunk.Size; z++)
+                if (worldMin.Y + y <= 0)
+                    chunk.SetBlock(x, y, z, 2);
+
+            return chunk;
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.CodeDom;
 using MinecraftClone3.Blocks;
 using MinecraftClone3.Graphics;
 using MinecraftClone3.Utils;
@@ -34,7 +33,7 @@ namespace MinecraftClone3.Entities
             if (ks.IsKeyDown(Key.W))
                 a.Z += 1;
             if (Math.Abs(a.LengthSquared) > 0.0001f)
-                Camera.Move(a.Normalized() * 0.28f);
+                Camera.Move(a.Normalized() * 0.8f);
 
 
             if (window.Focused)

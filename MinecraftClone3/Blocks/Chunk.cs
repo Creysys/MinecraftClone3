@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.Remoting.Messaging;
 using MinecraftClone3.Graphics;
 using MinecraftClone3.Utils;
 
@@ -7,7 +8,7 @@ namespace MinecraftClone3.Blocks
 {
     internal class Chunk : IDisposable
     {
-        public const int Size = 32;
+        public const int Size = 16;
 
         public readonly Vector3i Position;
 
@@ -16,8 +17,6 @@ namespace MinecraftClone3.Blocks
 
         private Vector3i _min = new Vector3i(Size);
         private Vector3i _max = new Vector3i(-1);
-
-        private bool _interrupted;
 
         private readonly VertexArrayObject _vao = new VertexArrayObject();
 
@@ -56,15 +55,9 @@ namespace MinecraftClone3.Blocks
             return _blockIds[x, y, z];
         }
 
-        public bool Update()
+        public void Update()
         {
-            lock (this)
-            {
-                _interrupted = false;
-                AddBlocksToVao();
-
-                return !_interrupted;
-            }
+            lock (this) AddBlocksToVao();
         }
 
         public void Upload()
@@ -78,11 +71,9 @@ namespace MinecraftClone3.Blocks
 
         public void Draw() => _vao.Draw();
 
-        public void InterruptUpdate() => _interrupted = true;
-
         public void Dispose()
         {
-            lock(this) _vao.Dispose();
+            lock (this) _vao.Dispose();
         }
 
         public void Write(BinaryWriter writer)
@@ -98,9 +89,7 @@ namespace MinecraftClone3.Blocks
             for (var x = _min.X; x <= _max.X; x++)
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
-            {
                 writer.Write(_blockIds[x, y, z]);
-            }
         }
 
         private void AddBlocksToVao()
@@ -108,12 +97,9 @@ namespace MinecraftClone3.Blocks
             for (var x = _min.X; x <= _max.X; x++)
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
-            {
-                if (_interrupted) return;
-
                 VaoHelper.AddBlockToVao(_world, Position * Size + new Vector3i(x, y, z), x, y, z,
                     _blockIds[x, y, z], _vao);
-            }
+
         }
     }
 }

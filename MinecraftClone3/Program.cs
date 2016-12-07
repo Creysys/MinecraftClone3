@@ -96,7 +96,7 @@ namespace MinecraftClone3
                 _fpsTimer -= 1;
                 _fpsCounter = 0;
 
-                Logger.Debug($"ChunksQueued: {_world.ChunksQueuedCount}, ChunksReady: {_world.ChunksReadyCount}, ChunksLoaded: {_world.ChunksLoadedCount}, ChunkThreads: {_world.ChunkThreadsCount}");
+                Logger.Debug($"ChunksQueued: {_world.ChunksQueuedCount}, ChunksReady: {_world.ChunksReadyCount}, ChunksLoaded: {_world.ChunksLoadedCount}");
             }
         }
     }
