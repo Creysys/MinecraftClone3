@@ -273,7 +273,7 @@ namespace MinecraftClone3.Blocks
         {
             // ReSharper disable once TooWideLocalVariableScope
             Chunk chunk;
-            while (!_unloaded)
+            while (!_unloaded || ChunksQueuedCount > 0)
             {
                 while (_queuedChunkUpdatesHp.Count > 0)
                 {
@@ -299,7 +299,7 @@ namespace MinecraftClone3.Blocks
                     if (!_chunksReadyToUploadLp.Contains(chunk)) _chunksReadyToUploadLp.Enqueue(chunk);
                 }
 
-                Thread.Sleep(10);
+                Thread.Sleep(1);
             }
         }
 
@@ -345,11 +345,11 @@ namespace MinecraftClone3.Blocks
         {
             while (!_unloaded)
             {
-                //Load 3x3 chunks around player
+                //Load 5x3x5 chunks around player
                 var playerChunk = ChunkInWorld(PlayerController.Camera.Position.ToVector3i());
-                for (var x = -1; x <= 1; x++)
+                for (var x = -2; x <= 2; x++)
                 for (var y = -1; y <= 1; y++)
-                for (var z = -1; z <= 1; z++)
+                for (var z = -2; z <= 2; z++)
                 {
                     var chunkPos = playerChunk + new Vector3i(x, y, z);
 
