@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
 using MinecraftClone3.Blocks;
 
 namespace MinecraftClone3.Utils
@@ -47,19 +46,14 @@ namespace MinecraftClone3.Utils
             lock (IndexLockObject)
             {
                 if (!indexFile.Exists)
-                    using (var stream = indexFile.Create())
+                    using (var stream = new GZipStream(indexFile.Create(), CompressionMode.Compress))
                     {
                         var buffer = new byte[1024];
                         for (var i = 0; i < buffer.Length; i += sizeof(int))
                             BitConverter.GetBytes(IndexFileNull).CopyTo(buffer, i);
 
-                        var written = 0;
-                        while (written < IndexFileLength)
-                        {
-                            var count = Math.Min(buffer.Length, IndexFileLength - written);
-                            stream.Write(buffer, 0, count);
-                            written += count;
-                        }
+                        for(var i = 0; i < IndexFileLength / buffer.Length; i++)
+                            stream.Write(buffer, 0, buffer.Length);
                     }
             }
 
@@ -68,7 +62,9 @@ namespace MinecraftClone3.Utils
             using (var memoryStream = new MemoryStream())
             {
                 using (var writer = new BinaryWriter(memoryStream))
+                {
                     chunk.Write(writer);
+                }
 
                 compressedChunkData = CompressionHelper.CompressBytes(memoryStream.ToArray());
             }
@@ -90,12 +86,11 @@ namespace MinecraftClone3.Utils
 
             lock (IndexLockObject)
             {
-                using (var writer = new BinaryWriter(indexFile.OpenWrite()))
-                {
-                    writer.Seek(chunkIndexPosition, SeekOrigin.Begin);
-                    writer.Write(chunkDataPosition);
-                    writer.Write(chunkDataLength);
-                }
+                var chunkIndexData = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
+                Array.Copy(BitConverter.GetBytes(chunkDataPosition), 0, chunkIndexData, chunkIndexPosition, sizeof(int));
+                Array.Copy(BitConverter.GetBytes(chunkDataLength), 0, chunkIndexData, chunkIndexPosition + sizeof(int),
+                    sizeof(int));
+                File.WriteAllBytes(indexFile.FullName, CompressionHelper.CompressBytes(chunkIndexData));
             }
 
             chunk.NeedsSaving = false;
@@ -112,20 +107,16 @@ namespace MinecraftClone3.Utils
 
             //Get chunk data position and length
             int chunkDataPosition, chunkDataLength;
-
             var chunkIndexPosition = GetChunkIndexPosition(chunkPos);
 
             lock (IndexLockObject)
             {
-                using (var reader = new BinaryReader(indexFile.OpenRead()))
-                {
-                    reader.BaseStream.Seek(chunkIndexPosition, SeekOrigin.Begin);
-                    chunkDataPosition = reader.ReadInt32();
-                    chunkDataLength = reader.ReadInt32();
-                }
+                var chunkIndexData = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
+                chunkDataPosition = BitConverter.ToInt32(chunkIndexData, chunkIndexPosition);
+                chunkDataLength = BitConverter.ToInt32(chunkIndexData, chunkIndexPosition + sizeof(int));
             }
 
-            if (chunkDataPosition == -1 || chunkDataLength == -1) return null;
+            if (chunkDataPosition == IndexFileNull || chunkDataLength == IndexFileNull) return null;
             //Read chunk data
             byte[] chunkData;
 
