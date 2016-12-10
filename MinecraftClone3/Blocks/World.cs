@@ -10,9 +10,6 @@ namespace MinecraftClone3.Blocks
     internal class World
     {
         public const int MaxChunkUpdates = 6;
-        public const int RegionSize = 64 * Chunk.Size;
-        public const int RegionSizeSquared = RegionSize * RegionSize;
-        public const int ChunksPerRegion = RegionSize / Chunk.Size;
 
         public static readonly TimeSpan ChunkLifetime = TimeSpan.FromSeconds(5);
 
@@ -21,16 +18,14 @@ namespace MinecraftClone3.Blocks
 
         private readonly Queue<Chunk> _chunksReadyToUploadHp = new Queue<Chunk>();
         private readonly Queue<Chunk> _chunksReadyToUploadLp = new Queue<Chunk>();
-        private readonly Thread _loadThread;
-        private readonly HashSet<Vector3i> _populatedChunks = new HashSet<Vector3i>();
+        private readonly Dictionary<Vector3i, DateTime> _populatedChunks = new Dictionary<Vector3i, DateTime>();
 
         private readonly Queue<Chunk> _queuedChunkUpdatesHp = new Queue<Chunk>();
         private readonly Queue<Chunk> _queuedChunkUpdatesLp = new Queue<Chunk>();
 
-        private readonly Dictionary<Vector3i, DateTime> _regionTimers = new Dictionary<Vector3i, DateTime>();
-        private readonly Thread _unloadThread;
-
         private readonly Thread _updateThread;
+        private readonly Thread _unloadThread;
+        private readonly Thread _loadThread;
 
         public readonly Dictionary<Vector3i, Chunk> LoadedChunks = new Dictionary<Vector3i, Chunk>();
 
@@ -50,21 +45,7 @@ namespace MinecraftClone3.Blocks
         public int ChunksQueuedCount => _queuedChunkUpdatesHp.Count + _queuedChunkUpdatesLp.Count;
         public int ChunksReadyCount => _chunksReadyToUploadHp.Count + _chunksReadyToUploadLp.Count;
         public int ChunksLoadedCount => LoadedChunks.Count;
-
-        public static Vector3i ChunkToRegion(Vector3i v) => RegionInWorld(v * Chunk.Size);
-
-        public static Vector3i RegionInWorld(Vector3i v) => RegionInWorld(v.X, v.Y, v.Z);
-
-        public static Vector3i ChunkInRegion(Vector3i v) => ChunkInRegion(v.X, v.Y, v.Z);
-        public static Vector3i ChunkInRegion(int x, int y, int z) => new Vector3i(
-            x < 0 ? (x + 1) % ChunksPerRegion + ChunksPerRegion - 1 : x % ChunksPerRegion,
-            y < 0 ? (y + 1) % ChunksPerRegion + ChunksPerRegion - 1 : y % ChunksPerRegion,
-            z < 0 ? (z + 1) % ChunksPerRegion + ChunksPerRegion - 1 : z % ChunksPerRegion);
-
-        public static Vector3i RegionInWorld(int x, int y, int z) => new Vector3i(
-            x < 0 ? (x + 1) / RegionSize - 1 : x / RegionSize,
-            y < 0 ? (y + 1) / RegionSize - 1 : y / RegionSize,
-            z < 0 ? (z + 1) / RegionSize - 1 : z / RegionSize);
+        
 
         public static Vector3i ChunkInWorld(Vector3i v) => ChunkInWorld(v.X, v.Y, v.Z);
 
@@ -172,8 +153,8 @@ namespace MinecraftClone3.Blocks
                     chunk = _chunksReadyToRemove.Dequeue();
                 }
                 LoadedChunks.Remove(chunk.Position);
-                _populatedChunks.Remove(chunk.Position);
-                chunk.Dispose();
+                //chunk.Dispose();
+                lock(_populatedChunks) _populatedChunks.Remove(chunk.Position);
                 actions++;
             }
 
@@ -263,8 +244,8 @@ namespace MinecraftClone3.Blocks
                 Thread.Sleep(100);
 
             Logger.Info("Saving world...");
-            foreach (var entry in _regionTimers)
-                WorldSerializer.SaveRegion(this, entry.Key);
+            foreach (var entry in LoadedChunks)
+                WorldSerializer.SaveChunk(entry.Value);
             Logger.Info("World saved");
         }
 
@@ -307,33 +288,21 @@ namespace MinecraftClone3.Blocks
         {
             while (!_unloaded)
             {
-                var regionsToRemove = new Stack<Vector3i>();
-                lock (_regionTimers)
+                var chunksToRemove = new Stack<Vector3i>();
+                lock (_populatedChunks)
                 {
-                    foreach (var entry in _regionTimers)
+                    foreach (var entry in _populatedChunks)
                         if (DateTime.Now - entry.Value >= ChunkLifetime)
-                            regionsToRemove.Push(entry.Key);
+                            chunksToRemove.Push(entry.Key);
                 }
 
-                while (regionsToRemove.Count > 0)
+                while (chunksToRemove.Count > 0 && _chunksReadyToRemove.Count <= 1024)
                 {
-                    var region = regionsToRemove.Pop();
-
-                    WorldSerializer.SaveRegion(this, region);
-
-                    var chunkMinPos = ChunkInWorld(region * RegionSize);
-                    for (var x = 0; x < ChunksPerRegion; x++)
-                    for (var y = 0; y < ChunksPerRegion; y++)
-                    for (var z = 0; z < ChunksPerRegion; z++)
+                    var chunkPos = chunksToRemove.Pop();
+                    if (LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
                     {
-                        var chunkPos = chunkMinPos + new Vector3i(x, y, z);
-                        if (LoadedChunks.ContainsKey(chunkPos))
-                            _chunksReadyToRemove.Enqueue(LoadedChunks[chunkPos]);
-                    }
-
-                    lock (_regionTimers)
-                    {
-                        _regionTimers.Remove(region);
+                        WorldSerializer.SaveChunk(chunk);
+                        _chunksReadyToRemove.Enqueue(chunk);
                     }
                 }
 
@@ -353,14 +322,16 @@ namespace MinecraftClone3.Blocks
                 {
                     var chunkPos = playerChunk + new Vector3i(x, y, z);
 
-                    //Reset region unload timer
-                    lock (_regionTimers)
+                    lock (_populatedChunks)
                     {
-                        _regionTimers[ChunkToRegion(chunkPos)] = DateTime.Now;
+                        if (_populatedChunks.ContainsKey(chunkPos))
+                        {
+                            //If chunk is already populated only reset its unload timer
+                            _populatedChunks[chunkPos] = DateTime.Now;
+                            continue;
+                        }
+                        _populatedChunks[chunkPos] = DateTime.Now;
                     }
-
-                    if (_populatedChunks.Contains(chunkPos)) continue;
-                    _populatedChunks.Add(chunkPos);
 
                     var chunk = LoadChunk(chunkPos);
                     lock (_chunksReadyToAdd)

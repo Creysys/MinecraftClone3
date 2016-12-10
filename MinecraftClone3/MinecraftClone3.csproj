@@ -70,6 +70,7 @@
     <Compile Include="Graphics\WorldRenderer.cs" />
     <Compile Include="Utils\BlockFace.cs" />
     <Compile Include="Utils\BlockRaytraceResult.cs" />
+    <Compile Include="Utils\CompressionHelper.cs" />
     <Compile Include="Utils\VaoHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,199 +1,166 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using MinecraftClone3.Blocks;
 
 namespace MinecraftClone3.Utils
 {
     internal class WorldSerializer
     {
-        /*
-         * Region file format
-         * Header
-         *   Header-Length (int)
-         *   4194304 bytes 128*128*128*(sizeof(uint)+sizeof(int)) chunkPositionOffset, length (gzip)
-         * data (gzip)
+        /* 
+         * Region index file format (ri)
+         * RegionSizeCubed * (int chunkDataPos, int chunkDataLength)
          * 
-         * sizeof(int) + header-length + chunkPositionOffset = chunkPositionInFile
+         * Region data file format (rd)
+         * Compressed chunk data
          */
 
-        public const string WorldFolder = "World";
-        public const string RegionsFolder = "Regions";
+        private const int ChunksInRegion = 128;
+        private const int ChunksInRegionSquared = ChunksInRegion * ChunksInRegion;
+        private const int ChunksInRegionCubed = ChunksInRegion * ChunksInRegion * ChunksInRegion;
+        private const int RegionSize = ChunksInRegion * Chunk.Size;
 
-        private static readonly object _lockObject = new object();
+        private const int IndexFileLength = ChunksInRegionCubed * sizeof(int) * 2;
+        private const int IndexFileNull = -1;
 
+        private const string WorldFolder = "World";
+        private const string RegionsFolder = "Regions";
 
-        public static void SaveRegion(World world, Vector3i region)
+        private const string RegionIndexExt = ".ri";
+        private const string RegionDataExt = ".rd";
+
+        private static readonly object IndexLockObject = new object();
+        private static readonly object DataLockObject = new object();
+
+        public static void SaveChunk(Chunk chunk)
         {
-            var file = new FileInfo(Path.Combine(WorldFolder, RegionsFolder, GetRegionFilename(region)));
+            if (!chunk.NeedsSaving) return;
+
+            var region = ChunkToRegion(chunk.Position);
+            var regionFilename = Path.Combine(WorldFolder, RegionsFolder, GetRegionFilename(region));
+            var indexFile = new FileInfo(regionFilename + RegionIndexExt);
+            var dataFile = new FileInfo(regionFilename + RegionDataExt);
             // ReSharper disable once PossibleNullReferenceException
-            file.Directory.Create();
+            indexFile.Directory.Create();
 
-            var existingChunks = new Dictionary<Vector3i, byte[]>();
-            lock(_lockObject)
-                if (file.Exists) LoadExistingChunks(file, existingChunks);
-
-            byte[] headerBytes;
-            byte[] dataBytes;
-
-            using (var headerStream = new MemoryStream())
-            using (var dataStream = new MemoryStream())
+            lock (IndexLockObject)
             {
-                using (var headerWriter = new BinaryWriter(new GZipStream(headerStream, CompressionMode.Compress)))
-                using (var dataWriter = new BinaryWriter(dataStream))
-                {
-                    var chunkMinPos = World.ChunkInWorld(region * World.RegionSize);
-                    for (var x = 0; x < World.ChunksPerRegion; x++)
-                    for (var y = 0; y < World.ChunksPerRegion; y++)
-                    for (var z = 0; z < World.ChunksPerRegion; z++)
+                if (!indexFile.Exists)
+                    using (var stream = indexFile.Create())
                     {
-                        var chunkPos = chunkMinPos + new Vector3i(x, y, z);
-                        if (world.LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
+                        var buffer = new byte[1024];
+                        for (var i = 0; i < buffer.Length; i += sizeof(int))
+                            BitConverter.GetBytes(IndexFileNull).CopyTo(buffer, i);
+
+                        var written = 0;
+                        while (written < IndexFileLength)
                         {
-                            var lastPos = dataStream.Position;
-
-                            WriteChunkCompressed(chunk, dataWriter);
-
-                            headerWriter.Write((uint) lastPos);
-                            headerWriter.Write((int) (dataStream.Position - lastPos));
-                        }
-                        else if (existingChunks.TryGetValue(chunkPos, out byte[] chunkData))
-                        {
-                            var lastPos = dataStream.Position;
-
-                            dataWriter.Write(chunkData);
-
-                            headerWriter.Write((uint) lastPos);
-                            headerWriter.Write((int) (dataStream.Position - lastPos));
-                        }
-                        else
-                        {
-                            headerWriter.Write(uint.MaxValue);
-                            headerWriter.Write(int.MinValue);
+                            var count = Math.Min(buffer.Length, IndexFileLength - written);
+                            stream.Write(buffer, 0, count);
+                            written += count;
                         }
                     }
-                }
-
-                dataBytes = dataStream.ToArray();
-                headerBytes = headerStream.ToArray();
             }
 
-
-            lock(_lockObject)
-            using (var writer = new BinaryWriter(file.Create()))
+            //Compress chunk data
+            byte[] compressedChunkData;
+            using (var memoryStream = new MemoryStream())
             {
-                writer.Write(headerBytes.Length);
-                writer.Write(headerBytes);
-                writer.Write(dataBytes);
+                using (var writer = new BinaryWriter(memoryStream))
+                    chunk.Write(writer);
+
+                compressedChunkData = CompressionHelper.CompressBytes(memoryStream.ToArray());
             }
+
+            var chunkDataPosition = dataFile.Exists ? (int) dataFile.Length : 0;
+            var chunkDataLength = compressedChunkData.Length;
+
+            //Append chunk to data file
+            lock (DataLockObject)
+            {
+                using (var stream = dataFile.Open(FileMode.Append, FileAccess.Write))
+                {
+                    stream.Write(compressedChunkData, 0, compressedChunkData.Length);
+                }
+            }
+
+            //Update chunk index
+            var chunkIndexPosition = GetChunkIndexPosition(chunk.Position);
+
+            lock (IndexLockObject)
+            {
+                using (var writer = new BinaryWriter(indexFile.OpenWrite()))
+                {
+                    writer.Seek(chunkIndexPosition, SeekOrigin.Begin);
+                    writer.Write(chunkDataPosition);
+                    writer.Write(chunkDataLength);
+                }
+            }
+
+            chunk.NeedsSaving = false;
         }
 
         public static CachedChunk LoadChunk(World world, Vector3i chunkPos)
         {
-            var file =
-                new FileInfo(Path.Combine(WorldFolder, RegionsFolder,
-                    GetRegionFilename(World.ChunkToRegion(chunkPos))));
+            var region = ChunkToRegion(chunkPos);
+            var regionFilename = Path.Combine(WorldFolder, RegionsFolder, GetRegionFilename(region));
+            var indexFile = new FileInfo(regionFilename + RegionIndexExt);
+            var dataFile = new FileInfo(regionFilename + RegionDataExt);
 
-            lock (_lockObject)
+            if (!indexFile.Exists || !dataFile.Exists) return null;
+
+            //Get chunk data position and length
+            int chunkDataPosition, chunkDataLength;
+
+            var chunkIndexPosition = GetChunkIndexPosition(chunkPos);
+
+            lock (IndexLockObject)
             {
-                if (!file.Exists) return null;
-                using (var reader = new BinaryReader(file.OpenRead()))
+                using (var reader = new BinaryReader(indexFile.OpenRead()))
                 {
-                    var header = ReadCompressedHeader(reader);
-                    var chunkDataCompressed = ReadCompressedChunkData(chunkPos, header, reader);
-                    if (chunkDataCompressed == null) return null;
-
-                    using (
-                        var chunkDataReader =
-                            new BinaryReader(new GZipStream(new MemoryStream(chunkDataCompressed),
-                                CompressionMode.Decompress)))
-                        return new CachedChunk(world, chunkPos, chunkDataReader);
+                    reader.BaseStream.Seek(chunkIndexPosition, SeekOrigin.Begin);
+                    chunkDataPosition = reader.ReadInt32();
+                    chunkDataLength = reader.ReadInt32();
                 }
             }
-        }
 
+            if (chunkDataPosition == -1 || chunkDataLength == -1) return null;
+            //Read chunk data
+            byte[] chunkData;
 
-        private class Header
-        {
-            public readonly int CompressedLength;
-            public readonly byte[] Data;
-
-            public Header(int compressedLength, byte[] data)
+            lock (DataLockObject)
             {
-                CompressedLength = compressedLength;
-                Data = data;
-            }
-        }
-
-        private static void WriteChunkCompressed(Chunk chunk, BinaryWriter dataWriter)
-        {
-            byte[] chunkCompressedBytes;
-            using (var chunkDataStream = new MemoryStream())
-            {
-                using (var chunkDataWriter = new BinaryWriter(new GZipStream(chunkDataStream, CompressionMode.Compress)))
-                    chunk.Write(chunkDataWriter);
-
-                chunkCompressedBytes = chunkDataStream.ToArray();
-            }
-            dataWriter.Write(chunkCompressedBytes);
-        }
-
-        private static Header ReadCompressedHeader(BinaryReader reader)
-        {
-            var headerLength = reader.ReadInt32();
-            var headerBytesCompressed = reader.ReadBytes(headerLength);
-
-            using (var headerStream = new MemoryStream())
-            {
-                using (
-                    var headerCompressedStream = new GZipStream(new MemoryStream(headerBytesCompressed),
-                        CompressionMode.Decompress))
+                using (var reader = new BinaryReader(dataFile.OpenRead()))
                 {
-                    headerCompressedStream.CopyTo(headerStream);
+                    reader.BaseStream.Seek(chunkDataPosition, SeekOrigin.Begin);
+                    chunkData = CompressionHelper.DecompressBytes(reader.ReadBytes(chunkDataLength));
                 }
-
-                return new Header(headerLength, headerStream.ToArray());
             }
-        }
 
-        private static byte[] ReadCompressedChunkData(Vector3i chunkPos, Header header, BinaryReader reader)
-        {
-            var chunkInRegion = World.ChunkInRegion(chunkPos);
-            var chunkPositionInHeader = (chunkInRegion.X * World.ChunksPerRegion * World.ChunksPerRegion +
-                                         chunkInRegion.Y * World.ChunksPerRegion + chunkInRegion.Z) *
-                                        sizeof(uint) * 2;
-
-            if (chunkPositionInHeader >= header.Data.Length) return null;
-
-            var chunkPositionOffset = BitConverter.ToUInt32(header.Data, chunkPositionInHeader);
-            if (chunkPositionOffset == uint.MaxValue) return null;
-            var chunkLengthInFile = BitConverter.ToInt32(header.Data, chunkPositionInHeader + sizeof(uint));
-            
-
-            reader.BaseStream.Seek(sizeof(int) + header.CompressedLength + chunkPositionOffset, SeekOrigin.Begin);
-            return reader.ReadBytes(chunkLengthInFile);
-        }
-
-        private static void LoadExistingChunks(FileInfo file, Dictionary<Vector3i, byte[]> existingChunks)
-        {
-            using (var reader = new BinaryReader(file.OpenRead()))
+            using (var reader = new BinaryReader(new MemoryStream(chunkData)))
             {
-                var header = ReadCompressedHeader(reader);
-
-                for (var x = 0; x < World.ChunksPerRegion; x++)
-                for (var y = 0; y < World.ChunksPerRegion; y++)
-                for (var z = 0; z < World.ChunksPerRegion; z++)
-                {
-                    var chunkPos = new Vector3i(x, y, z);
-                    var chunkDataCompressed = ReadCompressedChunkData(chunkPos, header, reader);
-                    if (chunkDataCompressed == null) continue;
-
-                    existingChunks.Add(chunkPos, chunkDataCompressed);
-                }
+                return new CachedChunk(world, chunkPos, reader);
             }
         }
 
         private static string GetRegionFilename(Vector3i region) => $"{region.X} {region.Y} {region.Z}";
+
+        private static int GetChunkIndexPosition(Vector3i chunkPos)
+        {
+            var chunkInRegion = ChunkInRegion(chunkPos);
+            return ChunksInRegionCubed * chunkInRegion.Y + ChunksInRegionSquared * chunkInRegion.X +
+                   ChunksInRegion * chunkInRegion.Z;
+        }
+
+        private static Vector3i ChunkToRegion(Vector3i v) => new Vector3i(
+            v.X * Chunk.Size < 0 ? (v.X * Chunk.Size + 1) / RegionSize - 1 : v.X / ChunksInRegion,
+            v.Y * Chunk.Size < 0 ? (v.Y * Chunk.Size + 1) / RegionSize - 1 : v.Y / ChunksInRegion,
+            v.Z * Chunk.Size < 0 ? (v.Z * Chunk.Size + 1) / RegionSize - 1 : v.Z / ChunksInRegion);
+
+        private static Vector3i ChunkInRegion(Vector3i v) => new Vector3i(
+            v.X < 0 ? (v.X + 1) % ChunksInRegion + ChunksInRegion - 1 : v.X % ChunksInRegion,
+            v.Y < 0 ? (v.Y + 1) % ChunksInRegion + ChunksInRegion - 1 : v.Y % ChunksInRegion,
+            v.Z < 0 ? (v.Z + 1) % ChunksInRegion + ChunksInRegion - 1 : v.Z % ChunksInRegion);
     }
 }

@@ -9,7 +9,7 @@ namespace MinecraftClone3.Graphics
     {
         private readonly int _vaoId;
         private readonly int[] _bufferIds = new int[2];
-        private readonly int _indexId;
+        private readonly int _indicesId;
 
         private List<Vector3> _positions;
         private List<Vector3> _texCoords;
@@ -23,7 +23,7 @@ namespace MinecraftClone3.Graphics
         {
             _vaoId = GL.GenVertexArray();
             GL.GenBuffers(_bufferIds.Length, _bufferIds);
-            _indexId = GL.GenBuffer();
+            _indicesId = GL.GenBuffer();
         }
 
         public void Add(Vector3 position, Vector3 texCoord)
@@ -71,7 +71,7 @@ namespace MinecraftClone3.Graphics
                     BufferUsageHint.StaticDraw);
             }
 
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indexId);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indicesId);
             GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Count * sizeof(uint), _indices.ToArray(),
                 BufferUsageHint.StaticDraw);
 
@@ -95,6 +95,7 @@ namespace MinecraftClone3.Graphics
 
         public void Dispose()
         {
+            GL.DeleteBuffer(_indicesId);
             GL.DeleteBuffers(_bufferIds.Length, _bufferIds);
             GL.DeleteVertexArray(_vaoId);
         }
