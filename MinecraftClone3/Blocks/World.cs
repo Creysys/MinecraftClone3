@@ -14,15 +14,15 @@ namespace MinecraftClone3.Blocks
 
         public static readonly TimeSpan ChunkLifetime = TimeSpan.FromSeconds(5);
 
-        private readonly Queue<CachedChunk> _chunksReadyToAdd = new Queue<CachedChunk>();
-        private readonly Queue<Chunk> _chunksReadyToRemove = new Queue<Chunk>();
-
         private readonly Queue<Chunk> _chunksReadyToUploadHp = new Queue<Chunk>();
         private readonly Queue<Chunk> _chunksReadyToUploadLp = new Queue<Chunk>();
-        private readonly Dictionary<Vector3i, DateTime> _populatedChunks = new Dictionary<Vector3i, DateTime>();
 
         private readonly Queue<Chunk> _queuedChunkUpdatesHp = new Queue<Chunk>();
         private readonly Queue<Chunk> _queuedChunkUpdatesLp = new Queue<Chunk>();
+
+        private readonly HashSet<Vector3i> _populatedChunks = new HashSet<Vector3i>();
+        private readonly HashSet<Vector3i> _chunksReadyToRemove = new HashSet<Vector3i>();
+        private readonly Dictionary<Vector3i, CachedChunk> _chunksReadyToAdd = new Dictionary<Vector3i, CachedChunk>();
 
         private readonly Thread _updateThread;
         private readonly Thread _unloadThread;
@@ -46,7 +46,7 @@ namespace MinecraftClone3.Blocks
         public int ChunksQueuedCount => _queuedChunkUpdatesHp.Count + _queuedChunkUpdatesLp.Count;
         public int ChunksReadyCount => _chunksReadyToUploadHp.Count + _chunksReadyToUploadLp.Count;
         public int ChunksLoadedCount => LoadedChunks.Count;
-        
+
 
         public static Vector3i ChunkInWorld(Vector3i v) => ChunkInWorld(v.X, v.Y, v.Z);
 
@@ -68,13 +68,13 @@ namespace MinecraftClone3.Blocks
             var chunkInWorld = ChunkInWorld(x, y, z);
             var blockInChunk = BlockInChunk(x, y, z);
 
-            if (LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk))
+            if (LoadedChunks.TryGetValue(chunkInWorld, out var chunk))
                 chunk.SetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, id);
             else
             {
                 chunk = new Chunk(this, chunkInWorld);
                 chunk.SetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, id);
-                LoadedChunks.Add(chunkInWorld, chunk);
+                lock(LoadedChunks) LoadedChunks.Add(chunkInWorld, chunk);
             }
 
             if (!update) return;
@@ -108,7 +108,7 @@ namespace MinecraftClone3.Blocks
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
         {
-            if (LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
+            if (LoadedChunks.TryGetValue(chunkPos, out var chunk))
                 QueueChunkUpdate(chunk, lowPrioriity);
         }
 
@@ -120,72 +120,7 @@ namespace MinecraftClone3.Blocks
                 if (!queue.Contains(chunk)) queue.Enqueue(chunk);
             }
         }
-
-        public void Update()
-        {
-            if (_unloaded) return;
-            
-            var actions = 0;
-            Chunk chunk;
-            while (actions < MaxChunkUpdates && _chunksReadyToUploadHp.Count > 0)
-            {
-                lock (_chunksReadyToUploadHp)
-                {
-                    chunk = _chunksReadyToUploadHp.Dequeue();
-                }
-                chunk.Upload();
-                actions++;
-            }
-
-            if (actions < MaxChunkUpdates && _chunksReadyToUploadLp.Count > 0)
-            {
-                lock (_chunksReadyToUploadLp)
-                {
-                    chunk = _chunksReadyToUploadLp.Dequeue();
-                }
-                chunk.Upload();
-                actions++;
-            }
-
-            if (actions < MaxChunkUpdates && _chunksReadyToRemove.Count > 0)
-            {
-                lock (_chunksReadyToRemove)
-                {
-                    chunk = _chunksReadyToRemove.Dequeue();
-                }
-                LoadedChunks.Remove(chunk.Position);
-                //chunk.Dispose();
-                lock(_populatedChunks) _populatedChunks.Remove(chunk.Position);
-                actions++;
-            }
-
-            while (actions < MaxChunkUpdates && _chunksReadyToAdd.Count > 0)
-            {
-                CachedChunk cachedChunk;
-                lock (_chunksReadyToAdd)
-                {
-                    cachedChunk = _chunksReadyToAdd.Dequeue();
-                }
-
-                if (LoadedChunks.ContainsKey(cachedChunk.Position)) continue;
-
-                if (!AreNeighbourChunksLoaded(cachedChunk.Position))
-                {
-                    lock(_chunksReadyToAdd) _chunksReadyToAdd.Enqueue(cachedChunk);
-                    actions++;
-                    continue;
-                }
-
-                chunk = new Chunk(cachedChunk);
-                LoadedChunks.Add(chunk.Position, chunk);
-
-                QueueChunkUpdate(chunk, true);
-                foreach (var face in BlockFaceHelper.Faces)
-                    QueueChunkUpdate(chunk.Position + face.GetNormali(), true);
-
-                actions++;
-            }
-        }
+        
 
         public BlockRaytraceResult BlockRaytrace(Vector3 position, Vector3 direction, float range)
         {
@@ -246,6 +181,51 @@ namespace MinecraftClone3.Blocks
             return result;
         }
 
+        public void Update()
+        {
+            if (_unloaded) return;
+
+            lock (_chunksReadyToRemove)
+            {
+                while (_chunksReadyToRemove.Count > 0)
+                {
+                    var chunkPos = _chunksReadyToRemove.First();
+
+                    if (LoadedChunks.TryGetValue(chunkPos, out var chunk))
+                    {
+                        lock(LoadedChunks) LoadedChunks.Remove(chunkPos);
+                        _populatedChunks.Remove(chunkPos);
+                        chunk.Dispose();
+                    }
+
+                    _chunksReadyToRemove.Remove(chunkPos);
+                }
+            }
+
+            lock (_chunksReadyToAdd)
+            {
+                while (_chunksReadyToAdd.Count > 0)
+                {
+                    var entry = _chunksReadyToAdd.First();
+                    lock (LoadedChunks) LoadedChunks.Add(entry.Key, new Chunk(entry.Value));
+                    _populatedChunks.Add(entry.Key);
+                    _chunksReadyToAdd.Remove(entry.Key);
+                }
+            }
+
+            while (_chunksReadyToUploadHp.Count > 0)
+                lock (_chunksReadyToUploadHp)
+                {
+                    _chunksReadyToUploadHp.Dequeue().Upload();
+                }
+
+            while (_chunksReadyToUploadLp.Count > 0)
+                lock (_chunksReadyToUploadLp)
+                {
+                    _chunksReadyToUploadLp.Dequeue().Upload();
+                }
+        }
+
         public void Unload()
         {
             _unloaded = true;
@@ -299,35 +279,53 @@ namespace MinecraftClone3.Blocks
         {
             while (!_unloaded)
             {
-                var chunksToRemove = new Stack<Vector3i>();
-                lock (_populatedChunks)
+                List<Chunk> chunksToUnload;
+
+                lock (LoadedChunks)
                 {
-                    foreach (var entry in _populatedChunks)
-                        if (LoadedChunks.ContainsKey(entry.Key) && DateTime.Now - entry.Value >= ChunkLifetime)
-                            chunksToRemove.Push(entry.Key);
+                    chunksToUnload =
+                        LoadedChunks.Where(
+                            pair =>
+                                DateTime.Now - pair.Value.Time > ChunkLifetime &&
+                                !_chunksReadyToRemove.Contains(pair.Key)).Select(pair => pair.Value).ToList();
                 }
 
-                while (chunksToRemove.Count > 0 && _chunksReadyToRemove.Count < 1024)
+                foreach (var chunk in chunksToUnload)
                 {
-                    var chunkPos = chunksToRemove.Pop();
-                    if (LoadedChunks.TryGetValue(chunkPos, out Chunk chunk))
-                    {
-                        WorldSerializer.SaveChunk(chunk);
-                        _chunksReadyToRemove.Enqueue(chunk);
-                    }
-                    
-                    lock (_populatedChunks) _populatedChunks.Remove(chunkPos);
+                    WorldSerializer.SaveChunk(chunk);
+                    lock(_chunksReadyToRemove) _chunksReadyToRemove.Add(chunk.Position);
                 }
 
-
-                Thread.Sleep(10);
+                Thread.Sleep(1000);
             }
         }
 
         private void LoadThread()
         {
+            var chunksWaitingForNeighbours = new HashSet<Vector3i>();
+
             while (!_unloaded)
             {
+                //Remove chunks waiting that have been unloaded
+                var chunksToRemove =
+                    chunksWaitingForNeighbours.Where(
+                        chunkPos =>
+                            !_populatedChunks.Contains(chunkPos) && !_chunksReadyToAdd.ContainsKey(chunkPos) ||
+                            _populatedChunks.Contains(chunkPos) && !LoadedChunks.ContainsKey(chunkPos)).ToList();
+                chunksToRemove.ForEach(chunkPos => chunksWaitingForNeighbours.Remove(chunkPos));
+
+                //Update chunks waiting for neighbours
+                var chunksToUpdate =
+                    chunksWaitingForNeighbours.Where(
+                            chunkPos =>
+                                BlockFaceHelper.Faces.All(face => _populatedChunks.Contains(chunkPos + face.GetNormali())))
+                        .ToList();
+                foreach (var chunkPos in chunksToUpdate)
+                {
+                    QueueChunkUpdate(chunkPos, true);
+                    chunksWaitingForNeighbours.Remove(chunkPos);
+                }
+
                 //Load 5x3x5 chunks around player
                 var playerChunk = ChunkInWorld(PlayerController.Camera.Position.ToVector3i());
                 for (var x = -5; x <= 5; x++)
@@ -335,27 +333,28 @@ namespace MinecraftClone3.Blocks
                 for (var z = -5; z <= 5; z++)
                 {
                     var chunkPos = playerChunk + new Vector3i(x, y, z);
-
-                    lock (_populatedChunks)
+                    if (_populatedChunks.Contains(chunkPos) || _chunksReadyToAdd.ContainsKey(chunkPos))
                     {
-                        if (_populatedChunks.ContainsKey(chunkPos))
-                        {
-                            //If chunk is already populated only reset its unload timer
-                            _populatedChunks[chunkPos] = DateTime.Now;
-                            continue;
-                        }
-                        _populatedChunks[chunkPos] = DateTime.Now;
+                        //Reset chunk time so it will not be unloaded
+                        if (LoadedChunks.TryGetValue(chunkPos, out var chunk)) chunk.Time = DateTime.Now;
+                        continue;
                     }
 
-                    var chunk = LoadChunk(chunkPos);
-                    lock (_chunksReadyToAdd)
+                    var cachedChunk = LoadChunk(chunkPos);
+
+                    if (cachedChunk.IsEmpty)
                     {
-                        _chunksReadyToAdd.Enqueue(chunk);
+                        //Empty chunks dont need to be added to LoadedChunks
+                        lock(_populatedChunks) _populatedChunks.Add(chunkPos);
+                    }
+                    else
+                    {
+                        lock(_chunksReadyToAdd) _chunksReadyToAdd.Add(chunkPos, cachedChunk);
+                        chunksWaitingForNeighbours.Add(chunkPos);
                     }
                 }
 
                 //TODO: Load player view frustum
-
                 Thread.Sleep(10);
             }
         }
@@ -376,14 +375,6 @@ namespace MinecraftClone3.Blocks
                     chunk.SetBlock(x, y, z, 2);
 
             return chunk;
-        }
-
-        private bool AreNeighbourChunksLoaded(Vector3i chunkPos)
-        {
-            lock (_populatedChunks)
-            {
-                return BlockFaceHelper.Faces.All(face => _populatedChunks.ContainsKey(chunkPos + face.GetNormali()));
-            }
         }
     }
 }

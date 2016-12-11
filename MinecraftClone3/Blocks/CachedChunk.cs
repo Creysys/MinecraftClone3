@@ -10,6 +10,8 @@ namespace MinecraftClone3.Blocks
         public readonly Vector3i Position;
         public readonly uint[,,] BlockIds = new uint[Chunk.Size, Chunk.Size, Chunk.Size];
 
+        public bool IsEmpty => Min.X == Chunk.Size;
+
         public Vector3i Min = new Vector3i(Chunk.Size);
         public Vector3i Max = new Vector3i(-1);
 

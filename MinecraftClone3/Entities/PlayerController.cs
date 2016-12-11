@@ -33,7 +33,7 @@ namespace MinecraftClone3.Entities
             if (ks.IsKeyDown(Key.W))
                 a.Z += 1;
             if (Math.Abs(a.LengthSquared) > 0.0001f)
-                Camera.Move(a.Normalized() * 0.08f);
+                Camera.Move(a.Normalized() * 0.8f);
 
 
             if (window.Focused)

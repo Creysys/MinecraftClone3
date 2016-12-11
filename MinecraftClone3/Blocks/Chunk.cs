@@ -11,8 +11,11 @@ namespace MinecraftClone3.Blocks
 
         public readonly World World;
         public readonly Vector3i Position;
-        
+
+        public bool Updated;
+        public bool Uploaded;
         public bool NeedsSaving;
+        public DateTime Time;
 
         private readonly uint[,,] _blockIds = new uint[Size, Size, Size];
         
@@ -26,6 +29,8 @@ namespace MinecraftClone3.Blocks
         {
             World = world;
             Position = position;
+
+            Time = DateTime.Now;
         }
 
         internal Chunk(CachedChunk cachedChunk) : this(cachedChunk.World, cachedChunk.Position)
@@ -62,6 +67,7 @@ namespace MinecraftClone3.Blocks
         public void Update()
         {
             lock (_vao) AddBlocksToVao();
+            Updated = true;
         }
 
         public void Upload()
@@ -71,6 +77,7 @@ namespace MinecraftClone3.Blocks
                 _vao.Upload();
                 _vao.Clear();
             }
+            Uploaded = true;
         }
 
         public void Draw() => _vao.Draw();

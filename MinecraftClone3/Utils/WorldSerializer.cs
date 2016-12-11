@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using MinecraftClone3.Blocks;
@@ -23,11 +24,15 @@ namespace MinecraftClone3.Utils
         private const int IndexFileLength = ChunksInRegionCubed * sizeof(int) * 2;
         private const int IndexFileNull = -1;
 
+        private const int MaxCachedIndexDatas = 6;
+
         private const string WorldFolder = "World";
         private const string RegionsFolder = "Regions";
 
         private const string RegionIndexExt = ".ri";
         private const string RegionDataExt = ".rd";
+
+        private static readonly List<Tuple<Vector3i, byte[]>> CachedIndexDatas = new List<Tuple<Vector3i, byte[]>>();
 
         private static readonly object IndexLockObject = new object();
         private static readonly object DataLockObject = new object();
@@ -52,7 +57,7 @@ namespace MinecraftClone3.Utils
                         for (var i = 0; i < buffer.Length; i += sizeof(int))
                             BitConverter.GetBytes(IndexFileNull).CopyTo(buffer, i);
 
-                        for(var i = 0; i < IndexFileLength / buffer.Length; i++)
+                        for (var i = 0; i < IndexFileLength / buffer.Length; i++)
                             stream.Write(buffer, 0, buffer.Length);
                     }
             }
@@ -86,7 +91,7 @@ namespace MinecraftClone3.Utils
 
             lock (IndexLockObject)
             {
-                var chunkIndexData = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
+                var chunkIndexData = GetIndexData(region, indexFile);
                 Array.Copy(BitConverter.GetBytes(chunkDataPosition), 0, chunkIndexData, chunkIndexPosition, sizeof(int));
                 Array.Copy(BitConverter.GetBytes(chunkDataLength), 0, chunkIndexData, chunkIndexPosition + sizeof(int),
                     sizeof(int));
@@ -111,7 +116,7 @@ namespace MinecraftClone3.Utils
 
             lock (IndexLockObject)
             {
-                var chunkIndexData = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
+                var chunkIndexData = GetIndexData(region, indexFile);
                 chunkDataPosition = BitConverter.ToInt32(chunkIndexData, chunkIndexPosition);
                 chunkDataLength = BitConverter.ToInt32(chunkIndexData, chunkIndexPosition + sizeof(int));
             }
@@ -137,11 +142,25 @@ namespace MinecraftClone3.Utils
 
         private static string GetRegionFilename(Vector3i region) => $"{region.X} {region.Y} {region.Z}";
 
+        private static byte[] GetIndexData(Vector3i region, FileInfo indexFile)
+        {
+            foreach (var cachedIndexData in CachedIndexDatas)
+                if (cachedIndexData.Item1 == region) return cachedIndexData.Item2;
+
+            var data = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
+            CachedIndexDatas.Add(new Tuple<Vector3i, byte[]>(region, data));
+
+            if (CachedIndexDatas.Count > MaxCachedIndexDatas)
+                CachedIndexDatas.RemoveAt(0);
+
+            return data;
+        }
+
         private static int GetChunkIndexPosition(Vector3i chunkPos)
         {
             var chunkInRegion = ChunkInRegion(chunkPos);
-            return ChunksInRegionCubed * chunkInRegion.Y + ChunksInRegionSquared * chunkInRegion.X +
-                   ChunksInRegion * chunkInRegion.Z;
+            return (ChunksInRegionSquared * chunkInRegion.X + ChunksInRegion * chunkInRegion.Y + chunkInRegion.Z) *
+                   sizeof(int) * 2;
         }
 
         private static Vector3i ChunkToRegion(Vector3i v) => new Vector3i(
