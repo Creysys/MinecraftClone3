@@ -1,9 +1,0 @@
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\obj\Debug\MinecraftClone3API.csprojResolveAssemblyReference.cache
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\MinecraftClone3API.dll
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\MinecraftClone3API.pdb
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\OpenTK.dll
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\OpenTK.xml
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\obj\Debug\MinecraftClone3API.dll
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\obj\Debug\MinecraftClone3API.pdb
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\Newtonsoft.Json.dll
-D:\Creysys\Documents\Visual Studio 2017\Projects\MinecraftClone3\MinecraftClone3API\bin\Debug\Newtonsoft.Json.xml
