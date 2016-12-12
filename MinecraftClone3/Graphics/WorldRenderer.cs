@@ -1,4 +1,4 @@
-﻿using MinecraftClone3.Blocks;
+﻿using MinecraftClone3API.Blocks;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 

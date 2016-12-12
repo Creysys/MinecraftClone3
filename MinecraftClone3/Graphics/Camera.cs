@@ -1,10 +1,13 @@
 ﻿using System;
+using MinecraftClone3API.Entities;
 using OpenTK;
 
 namespace MinecraftClone3.Graphics
 {
     internal class Camera
     {
+        public Entity ParentEntity;
+
         public Vector3 Right;
         public Vector3 Forward;
         public Vector3 Position;
@@ -12,6 +15,11 @@ namespace MinecraftClone3.Graphics
         public float Yaw;
 
         public Matrix4 View;
+
+        public Camera(Entity parentEntity) : this()
+        {
+            ParentEntity = parentEntity;
+        }
 
         public Camera()
         {
@@ -22,11 +30,21 @@ namespace MinecraftClone3.Graphics
 
         public void Update()
         {
-            Forward = new Vector3((float) (Math.Sin(Yaw) * Math.Cos(Pitch)), (float) Math.Sin(Pitch),
-                (float) (Math.Cos(Yaw) * Math.Cos(Pitch)));
+            if (ParentEntity == null)
+            {
+                Forward = new Vector3((float) (Math.Sin(Yaw) * Math.Cos(Pitch)), (float) Math.Sin(Pitch),
+                    (float) (Math.Cos(Yaw) * Math.Cos(Pitch)));
 
-            View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
-            Right = View.Column0.Xyz;
+                View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
+                Right = View.Column0.Xyz;
+            }
+            else
+            {
+                Position = ParentEntity.Position;
+                Forward = ParentEntity.Forward;
+                View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
+                Right = View.Column0.Xyz;
+            }
         }
 
         public void Rotate(float pitch, float yaw)

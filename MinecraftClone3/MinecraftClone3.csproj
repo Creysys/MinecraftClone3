@@ -56,32 +56,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Blocks\CachedChunk.cs" />
-    <Compile Include="Blocks\ChunkCache.cs" />
-    <Compile Include="Blocks\Chunk.cs" />
-    <Compile Include="Blocks\World.cs" />
     <Compile Include="Entities\PlayerController.cs" />
     <Compile Include="Graphics\Camera.cs" />
-    <Compile Include="Graphics\TextureArray.cs" />
-    <Compile Include="Graphics\Shader.cs" />
-    <Compile Include="Graphics\Texture.cs" />
-    <Compile Include="Graphics\TextureData.cs" />
-    <Compile Include="Graphics\VertexArrayObject.cs" />
     <Compile Include="Graphics\WorldRenderer.cs" />
-    <Compile Include="Utils\BlockFace.cs" />
-    <Compile Include="Utils\BlockRaytraceResult.cs" />
-    <Compile Include="Utils\CompressionHelper.cs" />
-    <Compile Include="Utils\VaoHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils\Logger.cs" />
-    <Compile Include="Utils\Vector3i.cs" />
-    <Compile Include="Utils\WorldSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MinecraftClone3API\MinecraftClone3API.csproj">
+      <Project>{a7fad2d6-d0c3-4009-b764-0f79fcc8aeba}</Project>
+      <Name>MinecraftClone3API</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Blocks\" />
+    <Folder Include="Utils\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

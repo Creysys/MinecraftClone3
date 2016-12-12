@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.25920.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinecraftClone3", "MinecraftClone3\MinecraftClone3.csproj", "{85DA1852-3372-446C-83AD-3E9A39C061AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinecraftClone3API", "MinecraftClone3API\MinecraftClone3API.csproj", "{A7FAD2D6-D0C3-4009-B764-0F79FCC8AEBA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VanillaPlugin", "VanillaPlugin\VanillaPlugin.csproj", "{446783AE-1FD0-420F-A2D8-0DAD89E2FFC5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{85DA1852-3372-446C-83AD-3E9A39C061AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{85DA1852-3372-446C-83AD-3E9A39C061AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{85DA1852-3372-446C-83AD-3E9A39C061AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7FAD2D6-D0C3-4009-B764-0F79FCC8AEBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7FAD2D6-D0C3-4009-B764-0F79FCC8AEBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7FAD2D6-D0C3-4009-B764-0F79FCC8AEBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7FAD2D6-D0C3-4009-B764-0F79FCC8AEBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{446783AE-1FD0-420F-A2D8-0DAD89E2FFC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{446783AE-1FD0-420F-A2D8-0DAD89E2FFC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{446783AE-1FD0-420F-A2D8-0DAD89E2FFC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{446783AE-1FD0-420F-A2D8-0DAD89E2FFC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

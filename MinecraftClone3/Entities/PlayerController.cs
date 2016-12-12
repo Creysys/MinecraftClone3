@@ -1,7 +1,8 @@
 ﻿using System;
-using MinecraftClone3.Blocks;
 using MinecraftClone3.Graphics;
-using MinecraftClone3.Utils;
+using MinecraftClone3API.Blocks;
+using MinecraftClone3API.Entities;
+using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Input;
 
@@ -9,7 +10,8 @@ namespace MinecraftClone3.Entities
 {
     internal static class PlayerController
     {
-        public static Camera Camera = new Camera();
+        public static EntityPlayer PlayerEntity = new EntityPlayer();
+        public static Camera Camera = new Camera(PlayerEntity);
 
         private static MouseState? _oldMouseState;
         private static BlockRaytraceResult _blockRaytrace;
@@ -33,7 +35,7 @@ namespace MinecraftClone3.Entities
             if (ks.IsKeyDown(Key.W))
                 a.Z += 1;
             if (Math.Abs(a.LengthSquared) > 0.0001f)
-                Camera.Move(a.Normalized() * 0.8f);
+                Camera.Move(a.Normalized() * 0.08f);
 
 
             if (window.Focused)
@@ -60,13 +62,13 @@ namespace MinecraftClone3.Entities
         private static void BreakBlock(World world)
         {
             if (_blockRaytrace == null) return;
-            world.SetBlock(_blockRaytrace.BlockPos, 0);
+            world.SetBlock(_blockRaytrace.BlockPos, GameRegistry.BlockAir);
         }
 
         private static void PlaceBlock(World world)
         {
             if (_blockRaytrace == null) return;
-            world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), 1);
+            world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock("Vanilla:Stone"));
         }
 
         public static void ResetMouse()

@@ -1,8 +1,11 @@
 ﻿using System;
-using MinecraftClone3.Blocks;
+using System.IO;
 using MinecraftClone3.Entities;
 using MinecraftClone3.Graphics;
-using MinecraftClone3.Utils;
+using MinecraftClone3API.Blocks;
+using MinecraftClone3API.Graphics;
+using MinecraftClone3API.Plugins;
+using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
@@ -33,7 +36,16 @@ namespace MinecraftClone3
             _window.UpdateFrame += WindowOnUpdateFrame;
             _window.RenderFrame += WindowOnRenderFrame;
 
+            //Load plugins in "Plugins" dir
+            var pluginsDir = new DirectoryInfo("Plugins");
+            foreach (var dir in pluginsDir.EnumerateDirectories())
+                PluginManager.AddPlugin(dir);
+            foreach (var file in pluginsDir.EnumerateFiles())
+                PluginManager.AddPlugin(file);
+
+
             _world = new World();
+            _world.PlayerEntities.Add(PlayerController.PlayerEntity);
             shader = new Shader("testShader");
 
             projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)_window.Width/_window.Height, 0.01f, 256);
