@@ -5,7 +5,6 @@ namespace MinecraftClone3API.Blocks
 {
     public class Block : RegistryEntry
     {
-        public string TextureResource;
         public BlockTexture Texture;
 
         public Block(string name) : base(name)

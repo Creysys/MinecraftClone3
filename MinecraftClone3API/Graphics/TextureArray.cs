@@ -41,5 +41,7 @@ namespace MinecraftClone3API.Graphics
             GL.ActiveTexture(textureUnit);
             GL.BindTexture(TextureTarget.Texture2DArray, _id);
         }
+
+        public void Dispose() => GL.DeleteTexture(_id);
     }
 }

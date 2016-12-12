@@ -12,7 +12,7 @@ namespace MinecraftClone3API.Graphics
         private readonly int _indicesId;
 
         private List<Vector3> _positions;
-        private List<Vector3> _texCoords;
+        private List<Vector4> _texCoords;
         private List<uint> _indices;
 
         public int UploadedCount;
@@ -26,12 +26,12 @@ namespace MinecraftClone3API.Graphics
             _indicesId = GL.GenBuffer();
         }
 
-        public void Add(Vector3 position, Vector3 texCoord)
+        public void Add(Vector3 position, Vector4 texCoord)
         {
             if (_positions == null)
             {
                 _positions = new List<Vector3>(1024);
-                _texCoords = new List<Vector3>(1024);
+                _texCoords = new List<Vector4>(1024);
                 _indices = new List<uint>(1024);
             }
 
@@ -56,10 +56,10 @@ namespace MinecraftClone3API.Graphics
                 GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
 
                 GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[1]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector3.SizeInBytes, _texCoords.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector4.SizeInBytes, _texCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(1);
-                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 0, 0);
+                GL.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, 0);
             }
             else
             {
@@ -67,7 +67,7 @@ namespace MinecraftClone3API.Graphics
                 GL.BufferData(BufferTarget.ArrayBuffer, _positions.Count * Vector3.SizeInBytes, _positions.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[1]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector3.SizeInBytes, _texCoords.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector4.SizeInBytes, _texCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
             }
 

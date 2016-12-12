@@ -51,9 +51,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Blocks\Block.cs" />
+    <Compile Include="Graphics\BlockTextureManager.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\FileSystemCompressed.cs" />
     <Compile Include="IO\FileSystemRaw.cs" />
+    <Compile Include="IO\ResourceReader.cs" />
     <Compile Include="Plugins\IPlugin.cs" />
     <Compile Include="Plugins\PluginAttribute.cs" />
     <Compile Include="Plugins\PluginContext.cs" />

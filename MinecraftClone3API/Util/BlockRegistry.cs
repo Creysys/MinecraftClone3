@@ -7,12 +7,19 @@ namespace MinecraftClone3API.Util
 {
     public class BlockRegistry : Registry<Block>
     {
+        public static readonly Block BlockAir = new BlockAir();
+
         private readonly Dictionary<uint, Block> _idsToBlocks = new Dictionary<uint, Block>();
         private readonly Dictionary<string, uint> _keysToIds = new Dictionary<string, uint>();
 
+        public BlockRegistry()
+        {
+            Register("System", BlockAir);
+        }
+
         public Block this[uint id] => _idsToBlocks[id];
 
-        public override void Register(string prefix, Block block)
+        public sealed override void Register(string prefix, Block block)
         {
             base.Register(prefix, block);
 
@@ -44,7 +51,7 @@ namespace MinecraftClone3API.Util
         private uint GetBlockId(Block block)
         {
             if (_keysToIds.TryGetValue(block.RegistryKey, out var id)) return id;
-
+            
             id = 0;
             while (true)
             {

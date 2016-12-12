@@ -15,20 +15,20 @@ namespace MinecraftClone3API.IO
         public override Dictionary<string, byte[]> ReadAllFiles()
         {
             var dic = new Dictionary<string, byte[]>();
-            AddDir(dic, _dir);
+            AddDir(dic, _dir, _dir);
             return dic;
         }
 
-        private void AddDir(Dictionary<string, byte[]> dic, DirectoryInfo currentDir)
+        private void AddDir(Dictionary<string, byte[]> dic, DirectoryInfo currentDir, DirectoryInfo rootDir)
         {
             foreach (var file in currentDir.EnumerateFiles())
             {
-                var relativePath = file.FullName.Substring(currentDir.FullName.Length + 1).Replace("\\", "/");
+                var relativePath = file.FullName.Substring(rootDir.FullName.Length + 1).Replace("\\", "/");
                 dic.Add(relativePath, File.ReadAllBytes(file.FullName));
             }
 
             foreach (var dir in currentDir.EnumerateDirectories())
-                AddDir(dic, dir);
+                AddDir(dic, dir, rootDir);
         }
     }
 }

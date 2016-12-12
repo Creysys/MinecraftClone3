@@ -34,17 +34,17 @@ namespace MinecraftClone3.Graphics
             {
                 Forward = new Vector3((float) (Math.Sin(Yaw) * Math.Cos(Pitch)), (float) Math.Sin(Pitch),
                     (float) (Math.Cos(Yaw) * Math.Cos(Pitch)));
-
-                View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
+                
                 Right = View.Column0.Xyz;
             }
             else
             {
                 Position = ParentEntity.Position;
                 Forward = ParentEntity.Forward;
-                View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
-                Right = View.Column0.Xyz;
+                Right = ParentEntity.Right;
             }
+
+            View = Matrix4.LookAt(Position, Position + Forward, Vector3.UnitY);
         }
 
         public void Rotate(float pitch, float yaw)

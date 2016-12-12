@@ -38,27 +38,27 @@ namespace MinecraftClone3API.Util
 
         public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, uint id, VertexArrayObject vao)
         {
-            if (id == GameRegistry.BlockAir.Id) return;
+            if (id == BlockRegistry.BlockAir.Id) return;
 
             var block = GameRegistry.GetBlock(id);
             if (!block.IsVisible(world, blockPos)) return;
 
             foreach (var face in BlockFaceHelper.Faces)
             {
-                var faceNormal = face.GetNormali();
-                var otherBlock = world.GetBlock(blockPos + faceNormal);
+                var otherBlock = world.GetBlock(blockPos + face.GetNormali());
                 if (!otherBlock.IsVisible(world, blockPos) || !otherBlock.IsOpaque(world, blockPos))
-                    AddFaceToVao(x, y, z, id, face, vao);
+                    AddFaceToVao(x, y, z, block.GetTexture(world, blockPos, face), face, vao);
             }
         }
 
-        public static void AddFaceToVao(int x, int y, int z, uint id, BlockFace face, VertexArrayObject vao)
+        public static void AddFaceToVao(int x, int y, int z, BlockTexture texture, BlockFace face, VertexArrayObject vao)
         {
             var faceId = (int) face;
             var indicesOffset = vao.VertexCount;
 
             for (var j = 0; j < 4; j++)
-                vao.Add(FacePositions[faceId * 4 + j] + new Vector3(x, y, z), new Vector3(FaceTexCoords[j]) {Z = id - 1});
+                vao.Add(FacePositions[faceId * 4 + j] + new Vector3(x, y, z),
+                    new Vector4(FaceTexCoords[j]) {Z = texture.TextureId, W = texture.ArrayId});
 
             var newIndices = new uint[FaceIndices.Length];
             for (var j = 0; j < newIndices.Length; j++)

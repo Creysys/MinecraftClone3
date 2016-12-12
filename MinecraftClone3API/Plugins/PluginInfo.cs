@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
 
+#pragma warning disable 0649
+
 namespace MinecraftClone3API.Plugins
 {
     internal class PluginInfo
@@ -11,3 +13,5 @@ namespace MinecraftClone3API.Plugins
         public string[] PluginDlls;
     }
 }
+
+#pragma warning restore 0649

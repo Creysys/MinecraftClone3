@@ -109,7 +109,7 @@ namespace MinecraftClone3API.Blocks
 
             return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
                 ? GameRegistry.GetBlock(chunk.GetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z))
-                : GameRegistry.BlockAir;
+                : BlockRegistry.BlockAir;
         }
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
@@ -190,6 +190,16 @@ namespace MinecraftClone3API.Blocks
         public void Update()
         {
             if (_unloaded) return;
+
+            //Update entities
+            foreach (var playerEntity in PlayerEntities)
+            {
+                playerEntity.Update();
+            }
+            foreach (var entity in Entities)
+            {
+                entity.Update();
+            }
 
             lock (_chunksReadyToRemove)
             {

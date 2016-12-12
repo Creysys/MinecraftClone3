@@ -5,16 +5,16 @@ namespace MinecraftClone3API.Plugins
 {
     public class PluginContext
     {
-        public readonly string PluginName;
+        public readonly PluginAttribute PluginAttribute;
 
         internal readonly IPlugin Plugin;
 
-        internal PluginContext(string pluginName, IPlugin plugin)
+        internal PluginContext(PluginAttribute pluginAttribute, IPlugin plugin)
         {
-            PluginName = pluginName;
+            PluginAttribute = pluginAttribute;
             Plugin = plugin;
         }
 
-        public void Register(Block block) => GameRegistry.BlockRegistry.Register(PluginName, block);
+        public void Register(Block block) => GameRegistry.BlockRegistry.Register(PluginAttribute.Id, block);
     }
 }

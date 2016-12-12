@@ -10,8 +10,6 @@ namespace MinecraftClone3API.Util
 
         internal static readonly BlockRegistry BlockRegistry = new BlockRegistry();
 
-        public static readonly Block BlockAir = new BlockAir();
-
         public static List<string> GetMissingBlocks() => BlockRegistry.GetMissingBlocks();
 
         public static Block GetBlock(uint id) => BlockRegistry[id];

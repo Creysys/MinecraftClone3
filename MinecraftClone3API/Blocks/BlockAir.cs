@@ -4,7 +4,7 @@ namespace MinecraftClone3API.Blocks
 {
     public class BlockAir : Block
     {
-        public BlockAir() : base("Air")
+        internal BlockAir() : base("Air")
         {
         }
 
