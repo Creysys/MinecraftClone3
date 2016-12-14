@@ -6,7 +6,7 @@ namespace MinecraftClone3API.Graphics
 {
     public static class BlockTextureManager
     {
-        private static readonly int[] Sizes = {16, 64, 256, 1024};
+        public static readonly int[] Sizes = {16, 64, 256, 1024};
         private static readonly TextureArray[] TextureArrays = new TextureArray[Sizes.Length];
         private static readonly List<TextureData>[] TextureDatas = new List<TextureData>[Sizes.Length];
 

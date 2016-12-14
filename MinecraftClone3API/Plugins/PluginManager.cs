@@ -39,6 +39,7 @@ namespace MinecraftClone3API.Plugins
             var pluginInfo = JsonConvert.DeserializeObject<PluginInfo>(Encoding.Default.GetString(pluginInfoFileData));
             PluginDatas.Add(new PluginData(pluginInfo, pluginFiles));
 
+            if (pluginInfo.PluginDlls == null) return;
             foreach (var dllPath in pluginInfo.PluginDlls)
             {
                 if (!pluginFiles.TryGetValue(dllPath, out byte[] dllData))

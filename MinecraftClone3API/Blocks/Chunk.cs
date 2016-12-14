@@ -8,6 +8,7 @@ namespace MinecraftClone3API.Blocks
     public class Chunk : IDisposable
     {
         public const int Size = 16;
+        public const float Radius = 13.856406211853f;
 
         public readonly World World;
         public readonly Vector3i Position;

@@ -1,14 +1,6 @@
 packages
 .vs
-MinecraftClone3/obj/*
-MinecraftClone3API/obj/*
-MinecraftClone3API/bin/*
-VanillaPlugin/obj/*
-VanillaPlugin/bin/*
 
-!MinecraftClone3/bin
-!MinecraftClone3/bin/Debug
-MinecraftClone3/bin/Debug/*
-!MinecraftClone3/bin/Debug/*.fs
-!MinecraftClone3/bin/Debug/*.vs
-!MinecraftClone3/bin/Debug/Plugins/*
+MinecraftClone3/obj
+MinecraftClone3API/obj
+VanillaPlugin/obj

@@ -18,9 +18,6 @@ namespace MinecraftClone3API.Graphics
             _id = GL.GenTexture();
             Bind(TextureUnit.Texture0);
             GL.TexStorage3D(TextureTarget3d.Texture2DArray, 1, SizedInternalFormat.Rgba8, width, height, count);
-            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (float)TextureMinFilter.LinearMipmapLinear);
-            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (float)TextureMagFilter.Nearest);
-            GL.TexParameter(TextureTarget.Texture2DArray, (TextureParameterName)ExtTextureFilterAnisotropic.TextureMaxAnisotropyExt, 16);
         }
 
         public void SetTexture(int index, TextureData data)

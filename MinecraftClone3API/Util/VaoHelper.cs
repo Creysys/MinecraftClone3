@@ -58,7 +58,7 @@ namespace MinecraftClone3API.Util
 
             for (var j = 0; j < 4; j++)
                 vao.Add(FacePositions[faceId * 4 + j] + new Vector3(x, y, z),
-                    new Vector4(FaceTexCoords[j]) {Z = texture.TextureId, W = texture.ArrayId});
+                    new Vector4(FaceTexCoords[j]) {Z = texture.TextureId, W = texture.ArrayId}, face.GetNormal());
 
             var newIndices = new uint[FaceIndices.Length];
             for (var j = 0; j < newIndices.Length; j++)

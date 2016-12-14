@@ -22,9 +22,6 @@ namespace MinecraftClone3API.Graphics
             Bind(TextureUnit.Texture0);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Width, Height, 0, GLPixelFormat.Bgra,
                 PixelType.UnsignedByte, data.DataPtr);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (float)TextureMinFilter.LinearMipmapLinear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (float)TextureMagFilter.Nearest);
-            GL.TexParameter(TextureTarget.Texture2D, (TextureParameterName)ExtTextureFilterAnisotropic.TextureMaxAnisotropyExt, 16);
             GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
             data.Dispose();

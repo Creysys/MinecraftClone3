@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="Blocks\Block.cs" />
     <Compile Include="Graphics\BlockTextureManager.cs" />
+    <Compile Include="Graphics\Framebuffer.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\FileSystemCompressed.cs" />
     <Compile Include="IO\FileSystemRaw.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="Blocks\World.cs" />
     <Compile Include="Entities\Entity.cs" />
     <Compile Include="Entities\EntityPlayer.cs" />
+    <Compile Include="Util\Frustum.cs" />
     <Compile Include="Util\GameRegistry.cs" />
     <Compile Include="Graphics\BlockTexture.cs" />
     <Compile Include="Graphics\Shader.cs" />
@@ -78,6 +80,7 @@
     <Compile Include="Graphics\TextureData.cs" />
     <Compile Include="Graphics\VertexArrayObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Util\Plane.cs" />
     <Compile Include="Util\Registry.cs" />
     <Compile Include="Util\RegistryEntry.cs" />
     <Compile Include="Util\BlockRaytraceResult.cs" />

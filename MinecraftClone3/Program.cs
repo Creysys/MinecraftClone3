@@ -18,26 +18,26 @@ namespace MinecraftClone3
         private static readonly EntityPlayer _playerEntity = new EntityPlayer(){Position = new Vector3(0, 2, 0)};
         private static readonly Camera _camera = new Camera(_playerEntity);
 
-        private static GameWindow _window;
+        public static GameWindow Window;
+
         private static World _world;
-        private static Shader shader;
         private static Matrix4 projection;
         private static int _fpsCounter;
         private static double _fpsTimer;
 
         private static void Main(string[] args)
         {
-            _window = new GameWindow(1280, 720, GraphicsMode.Default, "MinecraftClone3")
+            Window = new GameWindow(1280, 720, GraphicsMode.Default, "MinecraftClone3")
             {
                 CursorVisible = false,
                 TargetUpdateFrequency = 120,
-                VSync = VSyncMode.On
+                VSync = VSyncMode.Off
             };
-            _window.Closed += WindowOnClosed;
-            _window.Resize += WindowOnResize;
-            _window.FocusedChanged += WindowOnFocusedChanged;
-            _window.UpdateFrame += WindowOnUpdateFrame;
-            _window.RenderFrame += WindowOnRenderFrame;
+            Window.Closed += WindowOnClosed;
+            Window.Resize += WindowOnResize;
+            Window.FocusedChanged += WindowOnFocusedChanged;
+            Window.UpdateFrame += WindowOnUpdateFrame;
+            Window.RenderFrame += WindowOnRenderFrame;
 
             //Load plugins in "Plugins" dir
             var pluginsDir = new DirectoryInfo("Plugins");
@@ -48,15 +48,17 @@ namespace MinecraftClone3
 
             PlayerController.SetEntity(_playerEntity);
             PluginManager.LoadPlugins();
+
+            ClientResources.Load();
+
             BlockTextureManager.Upload();
 
             _world = new World();
             _world.PlayerEntities.Add(_playerEntity);
-            shader = new Shader("testShader");
 
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)_window.Width/_window.Height, 0.01f, 256);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width/Window.Height, 0.01f, 512);
 
-            _window.Run();
+            Window.Run();
         }
 
         private static void WindowOnClosed(object sender, EventArgs eventArgs)
@@ -66,19 +68,19 @@ namespace MinecraftClone3
 
         private static void WindowOnResize(object sender, EventArgs eventArgs)
         {
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)_window.Width / _window.Height, 0.01f, 256);
-            GL.Viewport(_window.ClientSize);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width / Window.Height, 0.01f, 512);
+            GL.Viewport(Window.ClientSize);
         }
 
         private static void WindowOnFocusedChanged(object sender, EventArgs eventArgs)
         {
-            if (_window.Focused)
+            if (Window.Focused)
                 PlayerController.ResetMouse();
         }
 
         private static void WindowOnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            PlayerController.Update(_window, _world);
+            PlayerController.Update(Window, _world);
 
             _world.Update();
             _camera.Update();
@@ -86,19 +88,9 @@ namespace MinecraftClone3
 
         private static void WindowOnRenderFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            GL.Enable(EnableCap.CullFace);
-            GL.Enable(EnableCap.DepthTest);
+            WorldRenderer.RenderWorld(_world, _camera, projection);
 
-            GL.ClearColor(Color4.DarkBlue);
-            GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit | ClearBufferMask.ColorBufferBit);
-
-            shader.Bind();
-            GL.UniformMatrix4(4, false, ref _camera.View);
-            GL.UniformMatrix4(8, false, ref projection);
-
-            WorldRenderer.RenderWorld(_world);
-
-            _window.SwapBuffers();
+            Window.SwapBuffers();
 
             _fpsCounter++;
             _fpsTimer += frameEventArgs.Time;

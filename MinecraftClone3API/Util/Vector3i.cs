@@ -44,7 +44,7 @@ namespace MinecraftClone3API.Util
         public bool Equals(Vector3i other) => X == other.X && Y == other.Y && Z == other.Z;
     }
 
-    internal static class Vector3iExtensions
+    public static class Vector3iExtensions
     {
         public static Vector3i ToVector3i(this Vector3 v) => new Vector3i((int) v.X, (int) v.Y, (int) v.Z);
         public static Vector3 ToVector3(this Vector3i v) => new Vector3(v.X, v.Y, v.Z);
