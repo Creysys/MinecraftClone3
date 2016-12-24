@@ -51,18 +51,24 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Blocks\Block.cs" />
+    <Compile Include="Blocks\BlockData.cs" />
     <Compile Include="Graphics\BlockTextureManager.cs" />
     <Compile Include="Graphics\Framebuffer.cs" />
+    <Compile Include="Graphics\Light.cs" />
+    <Compile Include="Graphics\PointLight.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\FileSystemCompressed.cs" />
     <Compile Include="IO\FileSystemRaw.cs" />
     <Compile Include="IO\ResourceReader.cs" />
+    <Compile Include="Perlin.cs" />
     <Compile Include="Plugins\IPlugin.cs" />
     <Compile Include="Plugins\PluginAttribute.cs" />
     <Compile Include="Plugins\PluginContext.cs" />
     <Compile Include="Plugins\PluginData.cs" />
     <Compile Include="Plugins\PluginInfo.cs" />
     <Compile Include="Plugins\PluginManager.cs" />
+    <Compile Include="OpenSimplexNoise.cs" />
+    <Compile Include="Util\AxisAlignedBoundingBox.cs" />
     <Compile Include="Util\BlockRegistry.cs" />
     <Compile Include="Blocks\BlockAir.cs" />
     <Compile Include="Blocks\BlockFace.cs" />
@@ -71,6 +77,7 @@
     <Compile Include="Blocks\World.cs" />
     <Compile Include="Entities\Entity.cs" />
     <Compile Include="Entities\EntityPlayer.cs" />
+    <Compile Include="Util\ExtensionHelper.cs" />
     <Compile Include="Util\Frustum.cs" />
     <Compile Include="Util\GameRegistry.cs" />
     <Compile Include="Graphics\BlockTexture.cs" />

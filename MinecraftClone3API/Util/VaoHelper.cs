@@ -1,4 +1,5 @@
-﻿using MinecraftClone3API.Blocks;
+﻿using System;
+using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Graphics;
 using OpenTK;
 
@@ -36,29 +37,61 @@ namespace MinecraftClone3API.Util
         private static readonly uint[] FaceIndices = {2, 1, 0, 2, 3, 1};
 
 
-        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, uint id, VertexArrayObject vao)
+        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, VertexArrayObject vao)
         {
-            if (id == BlockRegistry.BlockAir.Id) return;
-
-            var block = GameRegistry.GetBlock(id);
             if (!block.IsVisible(world, blockPos)) return;
 
             foreach (var face in BlockFaceHelper.Faces)
             {
                 var otherBlock = world.GetBlock(blockPos + face.GetNormali());
-                if (!otherBlock.IsVisible(world, blockPos) || !otherBlock.IsOpaque(world, blockPos))
-                    AddFaceToVao(x, y, z, block.GetTexture(world, blockPos, face), face, vao);
+                if (!block.IsOpaqueFullBlock(world, blockPos) || !otherBlock.IsVisible(world, blockPos) || !otherBlock.IsOpaqueFullBlock(world, blockPos))
+                    AddFaceToVao(world, blockPos, x, y, z, block, face, vao);
             }
         }
 
-        public static void AddFaceToVao(int x, int y, int z, BlockTexture texture, BlockFace face, VertexArrayObject vao)
+        public static void AddFaceToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, BlockFace face, VertexArrayObject vao)
         {
             var faceId = (int) face;
             var indicesOffset = vao.VertexCount;
 
+            var transform = block.GetTransform(world, blockPos, face);
+            var texture = block.GetTexture(world, blockPos, face);
+            var overlayTexture = block.GetOverlayTexture(world, blockPos, face);
+            var texCoords = block.GetTexCoords(world, blockPos, face) ?? FaceTexCoords;
+            var overlayTexCoords = block.GetOverlayTexCoords(world, blockPos, face) ?? FaceTexCoords;
+            var color = block.GetColor(world, blockPos, face).ToVector4();
+            var overlayColor = block.GetOverlayColor(world, blockPos, face).ToVector4();
+            var normal = face.GetNormal();
+
+            if(texCoords.Length != 4) throw new Exception($"\"{block}\" invalid texture coords array length!");
+
             for (var j = 0; j < 4; j++)
-                vao.Add(FacePositions[faceId * 4 + j] + new Vector3(x, y, z),
-                    new Vector4(FaceTexCoords[j]) {Z = texture.TextureId, W = texture.ArrayId}, face.GetNormal());
+            {
+                var vertexPosition = FacePositions[faceId * 4 + j];
+                var position = (new Vector4(vertexPosition, 1) * transform).Xyz + new Vector3(x, y, z);
+
+                //tex coords are -1 if texture is null
+                var texCoord = texture == null ? new Vector4(-1) : new Vector4(texCoords[j])
+                {
+                    //texCoord z = texId, w = textureArrayId
+                    Z = texture.TextureId,
+                    W = texture.ArrayId
+                };
+
+                var overlayTexCoord = overlayTexture == null ? new Vector4(-1) : new Vector4(overlayTexCoords[j])
+                {
+                    Z = overlayTexture.TextureId,
+                    W = overlayTexture.ArrayId
+                };
+
+                //per vertex light value interpolation (smooth lighting + free ambient occlusion)
+                var brightness = CalculateBrightness(world, blockPos, face, vertexPosition);
+
+                //TODO: transform normals
+
+                vao.Add(position, texCoord, overlayTexCoord, normal, new Vector4(color.Xyz * brightness, color.W),
+                    new Vector4(overlayColor.Xyz * brightness, overlayColor.W));
+            }
 
             var newIndices = new uint[FaceIndices.Length];
             for (var j = 0; j < newIndices.Length; j++)
@@ -66,5 +99,42 @@ namespace MinecraftClone3API.Util
 
             vao.AddIndices(newIndices);
         }
+
+        private static float CalculateBrightness(World world, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
+        {
+            return 1;
+            var normal = face.GetNormali();
+            var pos = blockPos + normal;
+            var offset = (vertexPosition * 2).ToVector3i();
+
+            var lightValue = 0f;
+
+            if (normal.X != 0)
+            {
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)));
+            }
+            else if (normal.Y != 0)
+            {
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)));
+            }
+            else if (normal.Z != 0)
+            {
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)));
+            }
+            else throw new Exception("lol");
+
+            return lightValue / 4;
+        }
+
+        private static float LightLevelToBrightness(byte lightLevel) => (float)Math.Pow(0.8, 15 - lightLevel);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using MinecraftClone3.Graphics;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
 using MinecraftClone3API.Util;
@@ -50,7 +49,7 @@ namespace MinecraftClone3.Entities
                     if (_oldMouseState.Value.LeftButton == ButtonState.Released && ms.LeftButton == ButtonState.Pressed)
                         BreakBlock(world);
                     if (_oldMouseState.Value.RightButton == ButtonState.Released && ms.RightButton == ButtonState.Pressed)
-                        PlaceBlock(world);
+                        for(var i = 0; i < 100; i++) PlaceBlock(world);
                 }
                 _oldMouseState = ms;
                 Mouse.SetPosition(window.X + window.Width / 2, window.Y + window.Height / 2);
@@ -66,7 +65,7 @@ namespace MinecraftClone3.Entities
         private static void PlaceBlock(World world)
         {
             if (_blockRaytrace == null) return;
-            world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock("Vanilla:Stone"));
+            world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock("Vanilla:Torch"));
         }
 
         public static void ResetMouse()

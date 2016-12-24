@@ -1,21 +1,30 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using System.Runtime.Remoting.Messaging;
+using OpenTK.Graphics.OpenGL4;
 using GLPixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 using ExtTextureFilterAnisotropic = OpenTK.Graphics.OpenGL.ExtTextureFilterAnisotropic;
 
 namespace MinecraftClone3API.Graphics
 {
-    internal class Texture
+    public class Texture
     {
-        private readonly int _id;
+        public static Texture FromId(int id, int width, int height) => new Texture(id, width, height);
+
+        public readonly int Id;
+        public readonly int Width;
         public readonly int Height;
 
-        public readonly int Width;
+        private Texture(int id, int width, int height)
+        {
+            Id = id;
+            Width = width;
+            Height = height;
+        }
 
         public Texture(string filename)
         {
             var data = new TextureData(filename);
 
-            _id = GL.GenTexture();
+            Id = GL.GenTexture();
             Width = data.Width;
             Height = data.Height;
 
@@ -30,7 +39,7 @@ namespace MinecraftClone3API.Graphics
         public void Bind(TextureUnit textureUnit)
         {
             GL.ActiveTexture(textureUnit);
-            GL.BindTexture(TextureTarget.Texture2D, _id);
+            GL.BindTexture(TextureTarget.Texture2D, Id);
         }
     }
 }

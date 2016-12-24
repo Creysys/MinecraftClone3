@@ -1,4 +1,5 @@
-﻿using OpenTK;
+﻿using MinecraftClone3API.Util;
+using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 
@@ -40,6 +41,13 @@ namespace MinecraftClone3API.Graphics
         {
             GL.ClearColor(color);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+        }
+
+        protected void CheckFramebufferStatus()
+        {
+            var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+            if (status != FramebufferErrorCode.FramebufferComplete)
+                Logger.Error("Error creating geometry framebuffer!");
         }
     }
 }

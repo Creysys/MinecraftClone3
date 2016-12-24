@@ -30,14 +30,12 @@ namespace MinecraftClone3.Graphics
             GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, _depth, 0);
 
             GL.DrawBuffers(2, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1});
-            var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-            if(status != FramebufferErrorCode.FramebufferComplete)
-                Logger.Error("Error creating geometry framebuffer!");
+            CheckFramebufferStatus();
 
             Unbind(Program.Window.Width, Program.Window.Height);
         }
 
-        public void BindTextures()
+        public void BindTexturesAndSamplers()
         {
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, _diffuse);

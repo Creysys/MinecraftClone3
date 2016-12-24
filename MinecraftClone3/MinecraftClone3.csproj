@@ -59,6 +59,7 @@
     <Compile Include="Entities\PlayerController.cs" />
     <Compile Include="Graphics\Camera.cs" />
     <Compile Include="Graphics\GeometryFramebuffer.cs" />
+    <Compile Include="Graphics\LightFramebuffer.cs" />
     <Compile Include="Graphics\Samplers.cs" />
     <Compile Include="Graphics\WorldRenderer.cs" />
     <Compile Include="Program.cs" />

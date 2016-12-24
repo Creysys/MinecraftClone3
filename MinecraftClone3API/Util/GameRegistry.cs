@@ -12,7 +12,7 @@ namespace MinecraftClone3API.Util
 
         public static List<string> GetMissingBlocks() => BlockRegistry.GetMissingBlocks();
 
-        public static Block GetBlock(uint id) => BlockRegistry[id];
+        public static Block GetBlock(ushort id) => BlockRegistry[id];
         public static Block GetBlock(string key) => BlockRegistry[key];
 
         public static void Save(DirectoryInfo saveDir)

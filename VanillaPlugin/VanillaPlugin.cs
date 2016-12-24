@@ -14,6 +14,7 @@ namespace VanillaPlugin
             context.Register(new BlockBasic("Stone", "Vanilla/Textures/Blocks/Stone.png"));
             context.Register(new BlockBasic("Dirt", "Vanilla/Textures/Blocks/Dirt.png"));
             context.Register(new BlockGrass());
+            context.Register(new BlockTorch());
         }
 
         public void PostLoad(PluginContext context)

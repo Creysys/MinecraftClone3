@@ -9,6 +9,7 @@ namespace MinecraftClone3API.Blocks
         }
 
         public override bool IsVisible(World world, Vector3i blockPos) => false;
+        public override bool IsOpaqueFullBlock(World world, Vector3i blockPos) => false;
         public override bool CanPassThrough(World world, Vector3i blockPos) => true;
     }
 }

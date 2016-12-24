@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using MinecraftClone3API.Entities;
+using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
 using OpenTK;
 
@@ -11,6 +12,8 @@ namespace MinecraftClone3API.Blocks
     public class World
     {
         public const int MaxChunkUpdates = 6;
+
+        static OpenSimplexNoise simplex = new OpenSimplexNoise(42237560);
 
         public static readonly TimeSpan ChunkLifetime = TimeSpan.FromSeconds(30);
         private readonly Dictionary<Vector3i, CachedChunk> _chunksReadyToAdd = new Dictionary<Vector3i, CachedChunk>();
@@ -23,6 +26,7 @@ namespace MinecraftClone3API.Blocks
 
         private readonly Queue<Chunk> _queuedChunkUpdatesHp = new Queue<Chunk>();
         private readonly Queue<Chunk> _queuedChunkUpdatesLp = new Queue<Chunk>();
+        private readonly Queue<Vector3i> _queuedLightUpdates = new Queue<Vector3i>();
 
         private readonly Thread _unloadThread;
         private readonly Thread _loadThread;
@@ -85,6 +89,12 @@ namespace MinecraftClone3API.Blocks
 
             if (!update) return;
 
+            var pos = new Vector3i(x, y, z);
+            lock (_queuedLightUpdates)
+            {
+                if (!_queuedLightUpdates.Contains(pos)) _queuedLightUpdates.Enqueue(pos);
+            }
+
             if (blockInChunk.X == 0)
                 QueueChunkUpdate(chunkInWorld + new Vector3i(-1, 0, 0), lowPriority);
             else if (blockInChunk.X == Chunk.Size - 1)
@@ -110,6 +120,29 @@ namespace MinecraftClone3API.Blocks
             return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
                 ? GameRegistry.GetBlock(chunk.GetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z))
                 : BlockRegistry.BlockAir;
+        }
+
+        public void SetBlockLightLevel(Vector3i blockPos, int lightLevel)
+            => SetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z, lightLevel);
+        public void SetBlockLightLevel(int x, int y, int z, int lightLevel)
+        {
+            var chunkInWorld = ChunkInWorld(x, y, z);
+            var blockInChunk = BlockInChunk(x, y, z);
+
+            if (!LoadedChunks.TryGetValue(chunkInWorld, out var chunk)) return;
+            chunk.SetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, (byte) lightLevel);
+            QueueChunkUpdate(chunk, false);
+        }
+
+        public byte GetBlockLightLevel(Vector3i blockPos) => GetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z);
+        public byte GetBlockLightLevel(int x, int y, int z)
+        {
+            var chunkInWorld = ChunkInWorld(x, y, z);
+            var blockInChunk = BlockInChunk(x, y, z);
+
+            return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
+                ? chunk.GetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z)
+                : (byte)0;
         }
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
@@ -150,6 +183,9 @@ namespace MinecraftClone3API.Blocks
             for (var z = minZ; z <= maxZ; z++)
             {
                 var block = GetBlock(x, y, z);
+                        //var blocPo
+                        //var bb = block.GetBoundingBox(this, )
+                        //TODO: finish bb
                 if (block.CanPassThrough(this, new Vector3i(x, y, z))) continue;
 
                 var translation = Vector3.Zero;
@@ -265,10 +301,21 @@ namespace MinecraftClone3API.Blocks
 
         private void UpdateThread()
         {
-            // ReSharper disable once TooWideLocalVariableScope
+            Vector3i blockPos;
             Chunk chunk;
-            while (!_unloaded || ChunksQueuedCount > 0)
+
+            while (!_unloaded)
             {
+                while (_queuedLightUpdates.Count > 0)
+                {
+                    lock (_queuedLightUpdates)
+                    {
+                        blockPos = _queuedLightUpdates.Dequeue();
+                    }
+
+                    UpdateLightValues(blockPos);
+                }
+
                 while (_queuedChunkUpdatesHp.Count > 0)
                 {
                     lock (_queuedChunkUpdatesHp)
@@ -395,20 +442,57 @@ namespace MinecraftClone3API.Blocks
             }
         }
 
+        private void UpdateLightValues(Vector3i blockPos)
+        {
+            UpdateBlockLightValueRecursive(blockPos, GetBlock(blockPos).GetLightValue(this, blockPos));
+        }
+
+        private void UpdateBlockLightValueRecursive(Vector3i blockPos, byte lightValue)
+        {
+            if (lightValue == 0) return;
+
+            var block = GetBlock(blockPos);
+
+            //if the current block is opaque and full set light level to 0 and abort
+            if (block.IsOpaqueFullBlock(this, blockPos))
+            {
+                SetBlockLightLevel(blockPos, 0);
+                return;
+            }
+
+            //if the current blocks light level is already same or higher just abort
+            if (GetBlockLightLevel(blockPos) >= lightValue) return;
+
+            SetBlockLightLevel(blockPos, lightValue);
+            foreach (var face in BlockFaceHelper.Faces)
+            {
+                UpdateBlockLightValueRecursive(blockPos + face.GetNormali(), (byte)(lightValue - 1));
+            }
+        }
+
         private CachedChunk LoadChunk(Vector3i position)
         {
             var chunk = WorldSerializer.LoadChunk(this, position);
             if (chunk != null) return chunk;
 
+            //TODO: implement terrain gen
             chunk = new CachedChunk(this, position);
             var worldMin = position * Chunk.Size;
             var worldMax = worldMin + new Vector3i(Chunk.Size - 1);
 
             for (var x = 0; x < Chunk.Size; x++)
-            for (var y = 0; y < Chunk.Size; y++)
             for (var z = 0; z < Chunk.Size; z++)
-                if (worldMin.Y + y <= 0)
-                    chunk.SetBlock(x, y, z, GameRegistry.GetBlock("Vanilla:Grass"));
+            {
+                //var height = Perlin.OctavePerlin(worldMin.X + x, 0, worldMin.Z + z, 3, 0.5f, 0.234543)*0.001f;
+                var height = simplex.eval((worldMin.X + x)*0.06f, (worldMin.Z + z)*0.06f)*5;
+                height += simplex.eval((worldMin.X + x) * 0.1f, (worldMin.Z + z) * 0.1f)*2;
+                height += simplex.eval((worldMin.X + x) * 0.005f, (worldMin.Z + z) * 0.005f) * 10;
+
+                    for (var y = 0; y < Chunk.Size; y++)
+                    if (worldMin.Y + y <= height)
+                        chunk.SetBlock(x, y, z, GameRegistry.GetBlock("Vanilla:Grass"));
+            }
+
 
             return chunk;
         }

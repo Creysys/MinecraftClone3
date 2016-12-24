@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
+using OpenTK;
 
 namespace MinecraftClone3API.Blocks
 {
     public class Chunk : IDisposable
     {
         public const int Size = 16;
-        public const float Radius = 13.856406211853f;
+        public const float Radius = Size * 0.8660254F;      //a*sqrt(3)/2
 
         public readonly World World;
         public readonly Vector3i Position;
@@ -18,8 +20,10 @@ namespace MinecraftClone3API.Blocks
         public bool NeedsSaving;
         public DateTime Time;
 
-        private readonly uint[,,] _blockIds = new uint[Size, Size, Size];
-        
+        private readonly ushort[,,] _blockIds = new ushort[Size, Size, Size];
+        private readonly byte[,,] _lightLevels = new byte[Size, Size, Size];
+        private readonly Dictionary<Vector3i, BlockData> _blockDatas = new Dictionary<Vector3i, BlockData>();
+
         private Vector3i _min = new Vector3i(Size);
         private Vector3i _max = new Vector3i(-1);
 
@@ -41,7 +45,7 @@ namespace MinecraftClone3API.Blocks
             _max = cachedChunk.Max;
         }
 
-        public void SetBlock(int x, int y, int z, uint id)
+        public void SetBlock(int x, int y, int z, ushort id)
         {
             if (_blockIds[x, y, z] == id) return;
 
@@ -57,13 +61,16 @@ namespace MinecraftClone3API.Blocks
             if (z > _max.Z) _max.Z = z;
         }
 
-        public uint GetBlock(int x, int y, int z)
+        public ushort GetBlock(int x, int y, int z)
         {
             if (_blockIds == null || x < 0 || x >= Size || y < 0 || y >= Size || z < 0 || z >= Size)
                 return 0;
 
             return _blockIds[x, y, z];
         }
+
+        public void SetLightLevel(int x, int y, int z, byte lightLevel) => _lightLevels[x, y, z] = lightLevel;
+        public byte GetLightLevel(int x, int y, int z) => _lightLevels[x, y, z];
 
         public void Update()
         {
@@ -110,7 +117,7 @@ namespace MinecraftClone3API.Blocks
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
                 VaoHelper.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
-                    _blockIds[x, y, z], _vao);
+                    GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao);
 
         }
     }

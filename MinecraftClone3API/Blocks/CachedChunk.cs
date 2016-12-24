@@ -7,7 +7,7 @@ namespace MinecraftClone3API.Blocks
     {
         public readonly World World;
         public readonly Vector3i Position;
-        public readonly uint[,,] BlockIds = new uint[Chunk.Size, Chunk.Size, Chunk.Size];
+        public readonly ushort[,,] BlockIds = new ushort[Chunk.Size, Chunk.Size, Chunk.Size];
 
         public bool IsEmpty => Min.X == Chunk.Size;
 
@@ -29,7 +29,7 @@ namespace MinecraftClone3API.Blocks
             for (var y = Min.Y; y <= Max.Y; y++)
             for (var z = Min.Z; z <= Max.Z; z++)
             {
-                BlockIds[x, y, z] = reader.ReadUInt32();
+                BlockIds[x, y, z] = reader.ReadUInt16();
             }
         }
 
