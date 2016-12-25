@@ -27,7 +27,14 @@ namespace MinecraftClone3API.Blocks
             new Vector3i(0, +1, 0), new Vector3i(0, 0, -1), new Vector3i(0, 0, +1)
         };
 
+        private static readonly BlockFace[] Opposites =
+        {
+            BlockFace.Right, BlockFace.Left, BlockFace.Top,
+            BlockFace.Bottom, BlockFace.Front, BlockFace.Back
+        };
+
         public static Vector3 GetNormal(this BlockFace face) => face.GetNormali().ToVector3();
         public static Vector3i GetNormali(this BlockFace face) => Normals[(int) face];
+        public static BlockFace GetOpposite(this BlockFace face) => Opposites[(int) face];
     }
 }

@@ -43,8 +43,9 @@ namespace MinecraftClone3API.Util
 
             foreach (var face in BlockFaceHelper.Faces)
             {
-                var otherBlock = world.GetBlock(blockPos + face.GetNormali());
-                if (!block.IsOpaqueFullBlock(world, blockPos) || !otherBlock.IsVisible(world, blockPos) || !otherBlock.IsOpaqueFullBlock(world, blockPos))
+                var otherBlockPos = blockPos + face.GetNormali();
+                var otherBlock = world.GetBlock(otherBlockPos);
+                if (!block.IsOpaqueFullBlock(world, blockPos) || !otherBlock.IsVisible(world, otherBlockPos) || !otherBlock.IsOpaqueFullBlock(world, otherBlockPos))
                     AddFaceToVao(world, blockPos, x, y, z, block, face, vao);
             }
         }
@@ -85,7 +86,7 @@ namespace MinecraftClone3API.Util
                 };
 
                 //per vertex light value interpolation (smooth lighting + free ambient occlusion)
-                var brightness = CalculateBrightness(world, blockPos, face, vertexPosition);
+                var brightness = CalculateBrightness(world, block, blockPos, face, vertexPosition);
 
                 //TODO: transform normals
 
@@ -100,13 +101,20 @@ namespace MinecraftClone3API.Util
             vao.AddIndices(newIndices);
         }
 
-        private static float CalculateBrightness(World world, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
+        private static float CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
         {
-            return 1;
+            //if its not a full opaque block return brightness of itself
+            if (!block.IsOpaqueFullBlock(world, blockPos))
+                return LightLevelToBrightness(world.GetBlockLightLevel(blockPos));
+
+            //TODO: smooth lighting setting
+            //return 1;
+            //return LightLevelToBrightness(world.GetBlockLightLevel(blockPos + face.GetNormali()));
+
             var normal = face.GetNormali();
             var pos = blockPos + normal;
             var offset = (vertexPosition * 2).ToVector3i();
-
+            
             var lightValue = 0f;
 
             if (normal.X != 0)

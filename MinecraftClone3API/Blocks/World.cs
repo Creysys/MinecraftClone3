@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using MinecraftClone3API.Entities;
-using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
 using OpenTK;
 
@@ -444,29 +444,53 @@ namespace MinecraftClone3API.Blocks
 
         private void UpdateLightValues(Vector3i blockPos)
         {
-            UpdateBlockLightValueRecursive(blockPos, GetBlock(blockPos).GetLightValue(this, blockPos));
-        }
-
-        private void UpdateBlockLightValueRecursive(Vector3i blockPos, byte lightValue)
-        {
-            if (lightValue == 0) return;
-
             var block = GetBlock(blockPos);
-
-            //if the current block is opaque and full set light level to 0 and abort
             if (block.IsOpaqueFullBlock(this, blockPos))
             {
                 SetBlockLightLevel(blockPos, 0);
+                //TODO: occlude light
                 return;
             }
 
-            //if the current blocks light level is already same or higher just abort
-            if (GetBlockLightLevel(blockPos) >= lightValue) return;
+            //get max neighbour light level - 1
+            var maxNeighbourLightLevel = BlockFaceHelper.Faces.Aggregate(0,
+                (current, face) => Math.Max(current, GetBlockLightLevel(blockPos + face.GetNormali()))) - 1;
 
-            SetBlockLightLevel(blockPos, lightValue);
+            var blockEmittingLightLevel = Math.Max(maxNeighbourLightLevel, block.GetLightValue(this, blockPos));
+            SetBlockLightLevel(blockPos, blockEmittingLightLevel);
+
+
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            SpreadLightRecursive(blockPos, blockEmittingLightLevel, (BlockFace)int.MaxValue);
+
+            stopwatch.Stop();
+            Console.WriteLine($"Recursive light update took: {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        private void SpreadLightRecursive(Vector3i blockPos, int remainingLight, BlockFace from)
+        {
+            if (remainingLight == 0)
+                return;
+
+            var spreadToFaces = new Stack<BlockFace>();
             foreach (var face in BlockFaceHelper.Faces)
             {
-                UpdateBlockLightValueRecursive(blockPos + face.GetNormali(), (byte)(lightValue - 1));
+                if (face == from) continue;
+
+                var neighbourPos = blockPos + face.GetNormali();
+                if (GetBlock(neighbourPos).IsOpaqueFullBlock(this, blockPos)) continue;
+                if (GetBlockLightLevel(neighbourPos) >= remainingLight - 1) continue;
+
+                SetBlockLightLevel(neighbourPos, remainingLight - 1);
+                spreadToFaces.Push(face);
+            }
+
+            while (spreadToFaces.Count > 0)
+            {
+                var face = spreadToFaces.Pop();
+                SpreadLightRecursive(blockPos + face.GetNormali(), remainingLight - 1, face.GetOpposite());
             }
         }
 
@@ -487,10 +511,11 @@ namespace MinecraftClone3API.Blocks
                 var height = simplex.eval((worldMin.X + x)*0.06f, (worldMin.Z + z)*0.06f)*5;
                 height += simplex.eval((worldMin.X + x) * 0.1f, (worldMin.Z + z) * 0.1f)*2;
                 height += simplex.eval((worldMin.X + x) * 0.005f, (worldMin.Z + z) * 0.005f) * 10;
+                //height = 0;
 
                     for (var y = 0; y < Chunk.Size; y++)
                     if (worldMin.Y + y <= height)
-                        chunk.SetBlock(x, y, z, GameRegistry.GetBlock("Vanilla:Grass"));
+                        chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Grass") : GameRegistry.GetBlock("Vanilla:Dirt"));
             }
 
 

@@ -43,6 +43,6 @@ namespace VanillaPlugin
 
         public override Matrix4 GetTransform(World world, Vector3i blockPos, BlockFace face) => Transform;
 
-        public override byte GetLightValue(World world, Vector3i blockPos) => 15;
+        public override int GetLightValue(World world, Vector3i blockPos) => 15;
     }
 }
