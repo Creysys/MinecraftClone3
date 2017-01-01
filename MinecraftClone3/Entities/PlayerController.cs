@@ -52,7 +52,7 @@ namespace MinecraftClone3.Entities
                 if (_oldMouseState.Value.LeftButton == ButtonState.Released && ms.LeftButton == ButtonState.Pressed)
                     BreakBlock(world);
                 if (_oldMouseState.Value.RightButton == ButtonState.Released && ms.RightButton == ButtonState.Pressed)
-                    for(var i = 0; i < 100; i++) PlaceBlock(world);
+                    PlaceBlock(world);
             }
             _oldMouseState = ms;
             Mouse.SetPosition(window.X + window.Width / 2, window.Y + window.Height / 2);

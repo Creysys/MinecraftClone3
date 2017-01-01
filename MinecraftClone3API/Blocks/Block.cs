@@ -33,6 +33,6 @@ namespace MinecraftClone3API.Blocks
 
         public virtual Color4 GetColor(World world, Vector3i blockPos, BlockFace face) => Color4.White;
         public virtual Color4 GetOverlayColor(World world, Vector3i blockPos, BlockFace face) => Color4.White;
-        public virtual int GetLightValue(World world, Vector3i blockPos) => 0;
+        public virtual LightLevel GetLightLevel(World world, Vector3i blockPos) => LightLevel.Zero;
     }
 }

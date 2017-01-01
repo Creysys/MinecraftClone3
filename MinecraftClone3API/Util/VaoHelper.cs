@@ -101,48 +101,51 @@ namespace MinecraftClone3API.Util
             vao.AddIndices(newIndices);
         }
 
-        private static float CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
+        private static Vector3 CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
         {
             //if its not a full opaque block return brightness of itself
             if (!block.IsOpaqueFullBlock(world, blockPos))
-                return LightLevelToBrightness(world.GetBlockLightLevel(blockPos));
+                return LightLevelToBrightness(world.GetBlockLightLevel(blockPos).Vector3);
 
             //TODO: smooth lighting setting
-            //return 1;
             //return LightLevelToBrightness(world.GetBlockLightLevel(blockPos + face.GetNormali()));
 
             var normal = face.GetNormali();
             var pos = blockPos + normal;
             var offset = (vertexPosition * 2).ToVector3i();
             
-            var lightValue = 0f;
+            var lightValue = Vector3.Zero;
 
             if (normal.X != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)).Vector3);
             }
             else if (normal.Y != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)).Vector3);
             }
             else if (normal.Z != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)));
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)));
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
+                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)).Vector3);
             }
-            else throw new Exception("lol");
 
             return lightValue / 4;
         }
 
-        private static float LightLevelToBrightness(byte lightLevel) => (float)Math.Pow(0.8, 15 - lightLevel);
+        private const float Base = 0.8f;
+
+        private static Vector3 LightLevelToBrightness(Vector3 lightLevel)
+            =>
+                new Vector3((float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.X - 16, 0)), (float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.Y - 16, 0)),
+                    (float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.Z - 16, 0)));
     }
 }

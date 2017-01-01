@@ -146,7 +146,10 @@ namespace MinecraftClone3API.Graphics
         {
             _positions = null;
             _texCoords = null;
+            _overlayTexCoords = null;
             _normals = null;
+            _colors = null;
+            _overlayColors = null;
             _indices = null;
         }
 

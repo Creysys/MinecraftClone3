@@ -8,6 +8,7 @@ namespace MinecraftClone3API.Blocks
         public readonly World World;
         public readonly Vector3i Position;
         public readonly ushort[,,] BlockIds = new ushort[Chunk.Size, Chunk.Size, Chunk.Size];
+        public readonly LightLevel[,,] LightLevels = new LightLevel[Chunk.Size, Chunk.Size, Chunk.Size];
 
         public bool IsEmpty => Min.X == Chunk.Size;
 
@@ -30,6 +31,7 @@ namespace MinecraftClone3API.Blocks
             for (var z = Min.Z; z <= Max.Z; z++)
             {
                 BlockIds[x, y, z] = reader.ReadUInt16();
+                LightLevels[x, y, z] = LightLevel.FromBinary(reader.ReadUInt16());
             }
         }
 
@@ -45,6 +47,16 @@ namespace MinecraftClone3API.Blocks
             if (x > Max.X) Max.X = x;
             if (y > Max.Y) Max.Y = y;
             if (z > Max.Z) Max.Z = z;
+        }
+
+        public Block GetBlock(int x, int y, int z)
+        {
+            if (x < Min.X || x > Max.X ||
+                y < Min.Y || y > Max.Y ||
+                z < Min.Z || z > Max.Z)
+                return BlockRegistry.BlockAir;
+
+            return GameRegistry.BlockRegistry[BlockIds[x, y, z]];
         }
     }
 }

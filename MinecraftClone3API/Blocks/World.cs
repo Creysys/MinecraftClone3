@@ -13,8 +13,6 @@ namespace MinecraftClone3API.Blocks
     {
         public const int MaxChunkUpdates = 6;
 
-        static OpenSimplexNoise simplex = new OpenSimplexNoise(42237560);
-
         public static readonly TimeSpan ChunkLifetime = TimeSpan.FromSeconds(30);
         private readonly Dictionary<Vector3i, CachedChunk> _chunksReadyToAdd = new Dictionary<Vector3i, CachedChunk>();
         private readonly HashSet<Vector3i> _chunksReadyToRemove = new HashSet<Vector3i>();
@@ -76,7 +74,10 @@ namespace MinecraftClone3API.Blocks
             var blockInChunk = BlockInChunk(x, y, z);
 
             if (LoadedChunks.TryGetValue(chunkInWorld, out var chunk))
+            {
+                if (chunk.GetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z) == block.Id) return;
                 chunk.SetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, block.Id);
+            }
             else
             {
                 chunk = new Chunk(this, chunkInWorld);
@@ -122,28 +123,37 @@ namespace MinecraftClone3API.Blocks
                 : BlockRegistry.BlockAir;
         }
 
-        public void SetBlockLightLevel(Vector3i blockPos, int lightLevel)
+        public void SetBlockLightLevel(Vector3i blockPos, LightLevel lightLevel)
             => SetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z, lightLevel);
-        public void SetBlockLightLevel(int x, int y, int z, int lightLevel)
+        public void SetBlockLightLevel(int x, int y, int z, LightLevel lightLevel)
         {
             var chunkInWorld = ChunkInWorld(x, y, z);
             var blockInChunk = BlockInChunk(x, y, z);
 
             if (!LoadedChunks.TryGetValue(chunkInWorld, out var chunk)) return;
-            chunk.SetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, (byte) lightLevel);
+            chunk.SetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, lightLevel);
             QueueChunkUpdate(chunk, false);
         }
 
-        public byte GetBlockLightLevel(Vector3i blockPos) => GetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z);
-        public byte GetBlockLightLevel(int x, int y, int z)
+        public void SetBlockLightLevelColor(Vector3i blockPos, int value, int color)
+        {
+            var lightLevel = GetBlockLightLevel(blockPos);
+            lightLevel[color] = value;
+            SetBlockLightLevel(blockPos, lightLevel);
+        }
+
+        public LightLevel GetBlockLightLevel(Vector3i blockPos) => GetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z);
+        public LightLevel GetBlockLightLevel(int x, int y, int z)
         {
             var chunkInWorld = ChunkInWorld(x, y, z);
             var blockInChunk = BlockInChunk(x, y, z);
 
             return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
                 ? chunk.GetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z)
-                : (byte)0;
+                : LightLevel.Zero;
         }
+
+        public int GetBlockLightLevelColor(Vector3i blockPos, int color) => GetBlockLightLevel(blockPos)[color]; 
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
         {
@@ -444,53 +454,61 @@ namespace MinecraftClone3API.Blocks
 
         private void UpdateLightValues(Vector3i blockPos)
         {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var block = GetBlock(blockPos);
             if (block.IsOpaqueFullBlock(this, blockPos))
             {
-                SetBlockLightLevel(blockPos, 0);
+                SetBlockLightLevel(blockPos, LightLevel.Zero);
                 //TODO: occlude light
                 return;
             }
 
-            //get max neighbour light level - 1
-            var maxNeighbourLightLevel = BlockFaceHelper.Faces.Aggregate(0,
-                (current, face) => Math.Max(current, GetBlockLightLevel(blockPos + face.GetNormali()))) - 1;
+            var blockLightLevel = block.GetLightLevel(this, blockPos);
 
-            var blockEmittingLightLevel = Math.Max(maxNeighbourLightLevel, block.GetLightValue(this, blockPos));
-            SetBlockLightLevel(blockPos, blockEmittingLightLevel);
-
-
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            SpreadLightRecursive(blockPos, blockEmittingLightLevel, (BlockFace)int.MaxValue);
-
-            stopwatch.Stop();
-            Console.WriteLine($"Recursive light update took: {stopwatch.ElapsedMilliseconds} ms");
-        }
-
-        private void SpreadLightRecursive(Vector3i blockPos, int remainingLight, BlockFace from)
-        {
-            if (remainingLight == 0)
-                return;
-
-            var spreadToFaces = new Stack<BlockFace>();
-            foreach (var face in BlockFaceHelper.Faces)
+            //foreach color channel
+            for (var color = 0; color < 3; color++)
             {
-                if (face == from) continue;
+                //get max neighbour light level - 1
+                var maxNeighbourLightLevel = BlockFaceHelper.Faces.Aggregate(0,
+                                                 (current, face) =>
+                                                     Math.Max(current,
+                                                         GetBlockLightLevelColor(blockPos + face.GetNormali(), color))) - 1;
 
-                var neighbourPos = blockPos + face.GetNormali();
-                if (GetBlock(neighbourPos).IsOpaqueFullBlock(this, blockPos)) continue;
-                if (GetBlockLightLevel(neighbourPos) >= remainingLight - 1) continue;
-
-                SetBlockLightLevel(neighbourPos, remainingLight - 1);
-                spreadToFaces.Push(face);
+                var blockEmittingLightLevel = Math.Max(maxNeighbourLightLevel, blockLightLevel[color]);
+                SetBlockLightLevelColor(blockPos, blockEmittingLightLevel, color);
+                
+                SpreadLightIterative(blockPos, blockEmittingLightLevel, color);
             }
 
-            while (spreadToFaces.Count > 0)
+            stopwatch.Stop();
+            Console.WriteLine($"Light update took: {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        private void SpreadLightIterative(Vector3i blockPos, int maxLight, int color)
+        {
+            var tmp = new Dictionary<Vector3i, int>();
+            var spread = new Dictionary<Vector3i, int> {{blockPos, maxLight } };
+
+            while (spread.Count > 0)
             {
-                var face = spreadToFaces.Pop();
-                SpreadLightRecursive(blockPos + face.GetNormali(), remainingLight - 1, face.GetOpposite());
+                foreach (var entry in spread)
+                foreach (var face in BlockFaceHelper.Faces)
+                {
+                    var neighbourPos = entry.Key + face.GetNormali();
+                    if (spread.ContainsKey(neighbourPos) || tmp.ContainsKey(neighbourPos)) continue;
+                    if (GetBlock(neighbourPos).IsOpaqueFullBlock(this, neighbourPos)) continue;
+                    if (GetBlockLightLevelColor(neighbourPos, color) >= entry.Value - 1) continue;
+
+                    SetBlockLightLevelColor(neighbourPos, entry.Value - 1, color);
+                    tmp.Add(neighbourPos, entry.Value - 1);
+                }
+
+                spread.Clear();
+                foreach (var entry in tmp)
+                    spread.Add(entry.Key, entry.Value);
+                tmp.Clear();
             }
         }
 
@@ -507,15 +525,38 @@ namespace MinecraftClone3API.Blocks
             for (var x = 0; x < Chunk.Size; x++)
             for (var z = 0; z < Chunk.Size; z++)
             {
-                //var height = Perlin.OctavePerlin(worldMin.X + x, 0, worldMin.Z + z, 3, 0.5f, 0.234543)*0.001f;
-                var height = simplex.eval((worldMin.X + x)*0.06f, (worldMin.Z + z)*0.06f)*5;
-                height += simplex.eval((worldMin.X + x) * 0.1f, (worldMin.Z + z) * 0.1f)*2;
-                height += simplex.eval((worldMin.X + x) * 0.005f, (worldMin.Z + z) * 0.005f) * 10;
+                    
+                var height = OpenSimplexNoise.Generate((worldMin.X + x)*0.06f, (worldMin.Z + z)*0.06f)*5;
+                height += OpenSimplexNoise.Generate((worldMin.X + x) * 0.1f, (worldMin.Z + z) * 0.1f)*2;
+                height += OpenSimplexNoise.Generate((worldMin.X + x) * 0.005f, (worldMin.Z + z) * 0.005f) * 10;
                 //height = 0;
 
                     for (var y = 0; y < Chunk.Size; y++)
                     if (worldMin.Y + y <= height)
                         chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Grass") : GameRegistry.GetBlock("Vanilla:Dirt"));
+                        
+                        /*
+                for (var y = 0; y < Chunk.Size; y++)
+                {
+                    var density = (OpenSimplexNoise.Generate((worldMin.X + x) * 0.045f, (worldMin.Y + y) * 0.075f, (worldMin.Z + z) * 0.045f) +1)*30;
+                    if (density > 13+15)
+                    {
+                        chunk.SetBlock(x,y,z, GameRegistry.GetBlock("Vanilla:Stone"));
+                            if(chunk.GetBlock(x,y-1,z).RegistryKey == "Vanilla:Grass")
+                                chunk.SetBlock(x,y-1,z, GameRegistry.GetBlock("Vanilla:Dirt"));
+                    }
+                    else if (density > 10+15)
+                    {
+                        chunk.SetBlock(x, y, z,
+                            chunk.GetBlock(x, y + 1, z).IsOpaqueFullBlock(this, new Vector3i(x, y + 1, z))
+                                ? GameRegistry.GetBlock("Vanilla:Dirt")
+                                : GameRegistry.GetBlock("Vanilla:Grass"));
+
+                            if (chunk.GetBlock(x, y - 1, z).RegistryKey == "Vanilla:Grass")
+                                chunk.SetBlock(x, y - 1, z, GameRegistry.GetBlock("Vanilla:Dirt"));
+                        }
+                }
+                */
             }
 
 

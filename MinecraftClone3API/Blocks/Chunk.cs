@@ -21,7 +21,7 @@ namespace MinecraftClone3API.Blocks
         public DateTime Time;
 
         private readonly ushort[,,] _blockIds = new ushort[Size, Size, Size];
-        private readonly byte[,,] _lightLevels = new byte[Size, Size, Size];
+        private readonly LightLevel[,,] _lightLevels = new LightLevel[Size, Size, Size];
         private readonly Dictionary<Vector3i, BlockData> _blockDatas = new Dictionary<Vector3i, BlockData>();
 
         private Vector3i _min = new Vector3i(Size);
@@ -41,6 +41,7 @@ namespace MinecraftClone3API.Blocks
         internal Chunk(CachedChunk cachedChunk) : this(cachedChunk.World, cachedChunk.Position)
         {
             _blockIds = cachedChunk.BlockIds;
+            _lightLevels = cachedChunk.LightLevels;
             _min = cachedChunk.Min;
             _max = cachedChunk.Max;
         }
@@ -69,8 +70,8 @@ namespace MinecraftClone3API.Blocks
             return _blockIds[x, y, z];
         }
 
-        public void SetLightLevel(int x, int y, int z, byte lightLevel) => _lightLevels[x, y, z] = lightLevel;
-        public byte GetLightLevel(int x, int y, int z) => _lightLevels[x, y, z];
+        public void SetLightLevel(int x, int y, int z, LightLevel lightLevel) => _lightLevels[x, y, z] = lightLevel;
+        public LightLevel GetLightLevel(int x, int y, int z) => _lightLevels[x, y, z];
 
         public void Update()
         {
@@ -108,7 +109,10 @@ namespace MinecraftClone3API.Blocks
             for (var x = _min.X; x <= _max.X; x++)
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
+            {
                 writer.Write(_blockIds[x, y, z]);
+                writer.Write(_lightLevels[x, y, z].Binary);
+            }
         }
 
         private void AddBlocksToVao()
@@ -118,7 +122,6 @@ namespace MinecraftClone3API.Blocks
             for (var z = _min.Z; z <= _max.Z; z++)
                 VaoHelper.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
                     GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao);
-
         }
     }
 }
