@@ -21,6 +21,7 @@ namespace MinecraftClone3API.Blocks
         public virtual bool IsVisible(World world, Vector3i blockPos) => true;
         public virtual bool IsOpaqueFullBlock(World world, Vector3i blockPos) => true;
         public virtual bool CanPassThrough(World world, Vector3i blockPos) => false;
+        public virtual bool CanTarget(World world, Vector3i vector3I) => true;
 
         public virtual AxisAlignedBoundingBox GetBoundingBox(World world, Vector3i blockPos)
             => DefaultAlignedBoundingBox;
@@ -34,5 +35,6 @@ namespace MinecraftClone3API.Blocks
         public virtual Color4 GetColor(World world, Vector3i blockPos, BlockFace face) => Color4.White;
         public virtual Color4 GetOverlayColor(World world, Vector3i blockPos, BlockFace face) => Color4.White;
         public virtual LightLevel GetLightLevel(World world, Vector3i blockPos) => LightLevel.Zero;
+
     }
 }

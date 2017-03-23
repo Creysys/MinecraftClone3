@@ -8,6 +8,9 @@ namespace MinecraftClone3API.Util
         public Vector3 Min;
         public Vector3 Max;
 
+        public Vector3 Translation => Min + (Max - Min) * 0.5f;
+        public Vector3 Scale => Max - Min;
+
         public AxisAlignedBoundingBox(Vector3 min, Vector3 max)
         {
             Min = min;
@@ -38,6 +41,13 @@ namespace MinecraftClone3API.Util
             }
 
             return true;
+        }
+
+        public AxisAlignedBoundingBox Transform(Matrix4 transform)
+        {
+            var scale = transform.ExtractScale();
+            var translation = transform.ExtractTranslation();
+            return new AxisAlignedBoundingBox(Min * scale + translation, Max * scale + translation);
         }
     }
 }

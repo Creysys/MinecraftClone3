@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
-using OpenTK;
 
 namespace MinecraftClone3API.Blocks
 {
@@ -70,7 +69,19 @@ namespace MinecraftClone3API.Blocks
             return _blockIds[x, y, z];
         }
 
-        public void SetLightLevel(int x, int y, int z, LightLevel lightLevel) => _lightLevels[x, y, z] = lightLevel;
+        public void SetLightLevel(int x, int y, int z, LightLevel lightLevel)
+        {
+            NeedsSaving = true;
+            _lightLevels[x, y, z] = lightLevel;
+
+            if (x < _min.X) _min.X = x;
+            if (y < _min.Y) _min.Y = y;
+            if (z < _min.Z) _min.Z = z;
+            if (x > _max.X) _max.X = x;
+            if (y > _max.Y) _max.Y = y;
+            if (z > _max.Z) _max.Z = z;
+        }
+        
         public LightLevel GetLightLevel(int x, int y, int z) => _lightLevels[x, y, z];
 
         public void Update()

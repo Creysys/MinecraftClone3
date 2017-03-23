@@ -1,4 +1,5 @@
 ﻿using System;
+using MinecraftClone3.Graphics;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
 using MinecraftClone3API.Util;
@@ -68,11 +69,21 @@ namespace MinecraftClone3.Entities
         {
             if (_blockRaytrace == null) return;
             world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock(_currentBlock));
+
+            Logger.Debug(_playerEntity.Position.ToString() + ":" + _blockRaytrace.BlockPos);
         }
 
         public static void ResetMouse()
         {
             _oldMouseState = Mouse.GetState();
+        }
+
+        public static void Render(Camera camera, Matrix4 projection)
+        {
+            if (_blockRaytrace == null) return;
+
+            BoundingBoxRenderer.Render(_blockRaytrace.BoundingBox, _blockRaytrace.BlockPos.ToVector3(), 1.01f, camera,
+                projection);
         }
     }
 }

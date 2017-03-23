@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using MinecraftClone3.Entities;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
@@ -16,8 +17,14 @@ namespace MinecraftClone3.Graphics
             var viewProjection = camera.View * projection;
             var viewFrustum = Frustum.FromViewProjection(viewProjection);
 
+            //Wireframe
+            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
+
             DrawGeometryFramebuffer(world, camera, projection, viewFrustum);
-            DrawLightFramebuffer(world, viewProjection.Inverted(), viewFrustum);
+            //DrawLightFramebuffer(world, viewProjection.Inverted(), viewFrustum);
+
+            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+
             DrawComposition();
         }
 
@@ -55,6 +62,10 @@ namespace MinecraftClone3.Graphics
                 GL.UniformMatrix4(0, false, ref worldMat);
                 chunk.Draw();
             }
+
+            //TODO: Entities
+            PlayerController.Render(camera, projection);
+
             ClientResources.GeometryFramebuffer.Unbind(Program.Window.Width, Program.Window.Height);
         }
 

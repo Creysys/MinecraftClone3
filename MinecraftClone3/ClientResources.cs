@@ -15,6 +15,7 @@ namespace MinecraftClone3
         public static Shader WorldGeometryShader;
         public static Shader CompositionShader;
         public static Shader PointLightShader;
+        public static Shader BlockOutlineShader;
 
         public static VertexArrayObject ScreenRectVao;
 
@@ -26,12 +27,13 @@ namespace MinecraftClone3
             WorldGeometryShader = ResourceReader.ReadShader(PluginDir + "Shaders/WorldGeometry");
             CompositionShader = ResourceReader.ReadShader(PluginDir + "Shaders/Composition");
             PointLightShader = ResourceReader.ReadShader(PluginDir + "Shaders/PointLight");
+            BlockOutlineShader = ResourceReader.ReadShader(PluginDir + "Shaders/BlockOutline");
 
             ScreenRectVao = new VertexArrayObject();
-            ScreenRectVao.Add(new Vector3(-1, +1, 0), Vector4.Zero, Vector4.Zero, Vector3.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(+1, +1, 0), Vector4.Zero, Vector4.Zero, Vector3.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(-1, -1, 0), Vector4.Zero, Vector4.Zero, Vector3.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(+1, -1, 0), Vector4.Zero, Vector4.Zero, Vector3.Zero, Vector4.Zero, Vector4.Zero);
+            ScreenRectVao.Add(new Vector3(-1, +1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
+            ScreenRectVao.Add(new Vector3(+1, +1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
+            ScreenRectVao.Add(new Vector3(-1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
+            ScreenRectVao.Add(new Vector3(+1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
             ScreenRectVao.AddIndices(new uint[] {0, 2, 1, 1, 2, 3});
             ScreenRectVao.Upload();
 

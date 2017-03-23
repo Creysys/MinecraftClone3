@@ -1,0 +1,51 @@
+﻿using MinecraftClone3API.Graphics;
+using MinecraftClone3API.Util;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL4;
+
+namespace MinecraftClone3.Graphics
+{
+    static class BoundingBoxRenderer
+    {
+        private static readonly Vector3[] Vertices =
+        {
+            //North
+            new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(+0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, +0.5f, -0.5f), new Vector3(+0.5f, +0.5f, -0.5f),
+            //South
+            new Vector3(+0.5f, -0.5f, +0.5f), new Vector3(-0.5f, -0.5f, +0.5f),
+            new Vector3(+0.5f, +0.5f, +0.5f), new Vector3(-0.5f, +0.5f, +0.5f),
+        };
+
+        private static readonly uint[] Indices =
+        {
+            0, 1, 1, 3, 3, 2, 2, 0,
+            4, 5, 5, 7, 7, 6, 6, 4,
+            0, 5, 1, 4, 2, 7, 3, 6
+        };
+
+        private static VertexArrayObject _vbo;
+
+        public static void Load()
+        {
+            _vbo = new VertexArrayObject();
+            foreach (var vertex in Vertices)
+                _vbo.Add(vertex, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
+            _vbo.AddIndices(Indices);
+            _vbo.Upload();
+        }
+
+        public static void Render(AxisAlignedBoundingBox boundingBox, Vector3 translation, float scale, Camera camera, Matrix4 projection)
+        {
+            var transform = Matrix4.CreateScale(boundingBox.Scale * scale) * Matrix4.CreateTranslation(boundingBox.Translation + translation) *
+                        camera.View * projection;
+
+            ClientResources.BlockOutlineShader.Bind();
+            GL.UniformMatrix4(0, false, ref transform);
+            GL.Uniform4(4, Color4.Black);
+
+            _vbo.Draw(BeginMode.Lines);
+        }
+    }
+}

@@ -2,6 +2,7 @@
 using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
 using OpenTK;
+using OpenTK.Input;
 
 namespace VanillaPlugin
 {
@@ -43,6 +44,16 @@ namespace VanillaPlugin
 
         public override Matrix4 GetTransform(World world, Vector3i blockPos, BlockFace face) => Transform;
 
-        public override LightLevel GetLightLevel(World world, Vector3i blockPos) => new LightLevel(15, 11, 11);
+        public override AxisAlignedBoundingBox GetBoundingBox(World world, Vector3i blockPos)
+            => DefaultAlignedBoundingBox.Transform(Transform);
+
+        public override LightLevel GetLightLevel(World world, Vector3i blockPos)
+        {
+            var l = new LightLevel(15+16, 11+16, 11+16);
+            var ks = Keyboard.GetState();
+            if (ks.IsKeyDown(Key.R)) l = new LightLevel(15, 11, 11);
+            if (ks.IsKeyDown(Key.B)) l = new LightLevel(11 + 16, 11 + 16, 15 + 16);
+            return l;
+        }
     }
 }

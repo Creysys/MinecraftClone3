@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using MinecraftClone3API.Blocks;
 
 namespace MinecraftClone3API.Util
@@ -146,13 +148,13 @@ namespace MinecraftClone3API.Util
         {
             foreach (var cachedIndexData in CachedIndexDatas)
                 if (cachedIndexData.Item1 == region) return cachedIndexData.Item2;
-
+            
             var data = CompressionHelper.DecompressBytes(File.ReadAllBytes(indexFile.FullName));
             CachedIndexDatas.Add(new Tuple<Vector3i, byte[]>(region, data));
-
+            
             if (CachedIndexDatas.Count > MaxCachedIndexDatas)
                 CachedIndexDatas.RemoveAt(0);
-
+            
             return data;
         }
 

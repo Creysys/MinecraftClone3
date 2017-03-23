@@ -35,7 +35,7 @@ namespace MinecraftClone3API.Util
         };
 
         private static readonly uint[] FaceIndices = {2, 1, 0, 2, 3, 1};
-
+        private static readonly uint[] FlippedFaceIndices = { 0, 2, 3, 0, 3, 1 };
 
         public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, VertexArrayObject vao)
         {
@@ -66,6 +66,12 @@ namespace MinecraftClone3API.Util
 
             if(texCoords.Length != 4) throw new Exception($"\"{block}\" invalid texture coords array length!");
 
+
+            var vPositions = new Vector3[4];
+            var vTexCoords = new Vector4[4];
+            var vOverlayTexCoords = new Vector4[4];
+            var vBrightness = new Vector3[4];
+
             for (var j = 0; j < 4; j++)
             {
                 var vertexPosition = FacePositions[faceId * 4 + j];
@@ -90,13 +96,32 @@ namespace MinecraftClone3API.Util
 
                 //TODO: transform normals
 
-                vao.Add(position, texCoord, overlayTexCoord, normal, new Vector4(color.Xyz * brightness, color.W),
-                    new Vector4(overlayColor.Xyz * brightness, overlayColor.W));
+                vPositions[j] = position;
+                vTexCoords[j] = texCoord;
+                vOverlayTexCoords[j] = overlayTexCoord;
+                vBrightness[j] = brightness;
             }
 
+            //Flip faces to fix ambient occlusion anisotrophy
+            //https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
+
+            for (var j = 0; j < 4; j++)
+                vao.Add(vPositions[j], vTexCoords[j], vOverlayTexCoords[j], new Vector4(normal),
+                    new Vector4(color.Xyz * vBrightness[j], color.W),
+                    new Vector4(overlayColor.Xyz * vBrightness[j], overlayColor.W));
+
             var newIndices = new uint[FaceIndices.Length];
-            for (var j = 0; j < newIndices.Length; j++)
-                newIndices[j] = (uint)(FaceIndices[j] + indicesOffset);
+
+            if ((vBrightness[0] + vBrightness[3]).LengthSquared > (vBrightness[1] + vBrightness[2]).LengthSquared)
+            {
+                for (var j = 0; j < newIndices.Length; j++)
+                    newIndices[j] = (uint)(FlippedFaceIndices[j] + indicesOffset);
+            }
+            else
+            {
+                for (var j = 0; j < newIndices.Length; j++)
+                    newIndices[j] = (uint)(FaceIndices[j] + indicesOffset);
+            }
 
             vao.AddIndices(newIndices);
         }
@@ -142,10 +167,25 @@ namespace MinecraftClone3API.Util
         }
 
         private const float Base = 0.8f;
+        //private const float Base = 1f;
+        //private const float Base = 0.897499991f;
 
         private static Vector3 LightLevelToBrightness(Vector3 lightLevel)
-            =>
-                new Vector3((float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.X - 16, 0)), (float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.Y - 16, 0)),
-                    (float) Math.Pow(Base, Math.Max(LightLevel.Max - lightLevel.Z - 16, 0)));
+        {
+            for (var i = 0; i < 3; i++)
+                lightLevel[i] = CustomLightLevelToBrightness(lightLevel[i]);
+
+            return lightLevel;
+        }
+
+
+        private static float VanillaLightLevelToBrightness(float lightLevel)
+            => (float) Math.Pow(Base, Math.Max(15 - lightLevel, 0));
+
+        private static float CustomLightLevelToBrightness(float lightLevel)
+        {
+            var a = (lightLevel + 16) / LightLevel.Max;
+            return a * lightLevel / 31f + (1 - a) * VanillaLightLevelToBrightness(lightLevel);
+        }
     }
 }

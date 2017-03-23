@@ -193,13 +193,12 @@ namespace MinecraftClone3API.Blocks
             for (var z = minZ; z <= maxZ; z++)
             {
                 var block = GetBlock(x, y, z);
-                        //var blocPo
-                        //var bb = block.GetBoundingBox(this, )
-                        //TODO: finish bb
-                if (block.CanPassThrough(this, new Vector3i(x, y, z))) continue;
+                var blockPosi = new Vector3i(x, y, z);
+                var bb = block.GetBoundingBox(this, blockPosi);
+                if (bb == null || !block.CanTarget(this, blockPosi)) continue;
 
-                var translation = Vector3.Zero;
-                var scale = Vector3.One;
+                var translation = bb.Min + (bb.Max - bb.Min) * 0.5f;
+                var scale = bb.Max - bb.Min;
 
                 foreach (var face in BlockFaceHelper.Faces)
                 {
@@ -226,7 +225,7 @@ namespace MinecraftClone3API.Blocks
 
                     if (distance <= range && (result == null || result.Distance > distance))
                         result = new BlockRaytraceResult(block, face, new Vector3i(x, y, z), distance,
-                            point);
+                            point, bb);
                 }
             }
 
@@ -274,7 +273,9 @@ namespace MinecraftClone3API.Blocks
                     var entry = _chunksReadyToAdd.First();
                     lock (LoadedChunks)
                     {
-                        LoadedChunks.Add(entry.Key, new Chunk(entry.Value));
+                        if(!LoadedChunks.ContainsKey(entry.Key))
+                            LoadedChunks.Add(entry.Key, new Chunk(entry.Value));
+                        else Logger.Error("Chunk has already been loaded! " + entry.Key);
                     }
                     _populatedChunks.Add(entry.Key);
                     _chunksReadyToAdd.Remove(entry.Key);
@@ -344,13 +345,15 @@ namespace MinecraftClone3API.Blocks
                 {
                     chunk = _queuedChunkUpdatesLp.Dequeue();
                 }
+
                 chunk.Update();
+
                 lock (_chunksReadyToUploadLp)
                 {
                     if (!_chunksReadyToUploadLp.Contains(chunk)) _chunksReadyToUploadLp.Enqueue(chunk);
                 }
 
-                Thread.Sleep(1);
+                Thread.Sleep(0);
             }
         }
 
@@ -408,47 +411,92 @@ namespace MinecraftClone3API.Blocks
                     QueueChunkUpdate(chunkPos, true);
                     chunksWaitingForNeighbours.Remove(chunkPos);
                 }
-
-                //Load 5x3x5 chunks around player
+                
+                var playerChunksLists = new List<List<Vector3i>>();
                 foreach (var playerEntity in PlayerEntities)
                 {
+                    var playerChunksToLoad = new List<Vector3i>();
                     var playerChunk = ChunkInWorld(playerEntity.Position.ToVector3i());
-                    for (var x = -5; x <= 5; x++)
-                    for (var y = -3; y <= 3; y++)
-                    for (var z = -5; z <= 5; z++)
+
+                    //Load 7x7x7 around player
+                    for (var x = -3; x <= 3; x++)
+                        for (var y = -3; y <= 3; y++)
+                            for (var z = -3; z <= 3; z++)
+                            {
+                                var chunkPos = playerChunk + new Vector3i(x, y, z);
+                                if (playerChunksToLoad.Contains(chunkPos)) continue;
+                                if (_populatedChunks.Contains(chunkPos) || _chunksReadyToAdd.ContainsKey(chunkPos))
+                                {
+                                    //Reset chunk time so it will not be unloaded
+                                    if (LoadedChunks.TryGetValue(chunkPos, out var chunk)) chunk.Time = DateTime.Now;
+                                    continue;
+                                }
+                                
+                                playerChunksToLoad.Add(chunkPos);
+                            }
+
+
+                    //Load 61x3x61 terrain if overworld
+                    //heightmap(x*Chunk.Size + Chunk.Size/2, z*Chunk.Size + Chunk.Size/2)
+                    
+                    var height = 0 + Chunk.Size/2;
+                    var heightMapChunkY = ChunkInWorld(0, height, 0).Y;
+                    for (var x = -30; x <= 30; x++)
+                        for (var y = -1; y <= 1; y++)
+                            for (var z = -30; z <= 30; z++)
+                            {
+                                if (x <= 3 && x >= -3 && y <= 3 && y >= -3 && z <= 3 && z >= -3) continue;
+
+                                var chunkPos = new Vector3i(playerChunk.X + x, heightMapChunkY + y, playerChunk.Z + z);
+                                
+                                if (_populatedChunks.Contains(chunkPos) || _chunksReadyToAdd.ContainsKey(chunkPos))
+                                {
+                                    //Reset chunk time so it will not be unloaded
+                                    if (LoadedChunks.TryGetValue(chunkPos, out var chunk)) chunk.Time = DateTime.Now;
+                                    continue;
+                                }
+                                
+                                playerChunksToLoad.Add(chunkPos);
+                            }
+
+
+                    
+                    playerChunksToLoad.Sort(
+                        (v0, v1) =>
+                            (int) (v0.ToVector3() - playerChunk.ToVector3()).LengthSquared -
+                            (int) (v1.ToVector3() - playerChunk.ToVector3()).LengthSquared);
+
+                    //Cap player chunk load tasks to 16
+                    if(playerChunksToLoad.Count > 16)
+                        playerChunksToLoad.RemoveRange(16, playerChunksToLoad.Count - 16);
+
+                    playerChunksLists.Add(playerChunksToLoad);
+                }
+
+                var merged = ExtensionHelper.ZipMerge(playerChunksLists.ToArray());
+                foreach (var chunkPos in merged)
+                {
+                    var cachedChunk = LoadChunk(chunkPos);
+
+                    if (cachedChunk.IsEmpty)
                     {
-                        var chunkPos = playerChunk + new Vector3i(x, y, z);
-                        if (_populatedChunks.Contains(chunkPos) || _chunksReadyToAdd.ContainsKey(chunkPos))
+                        //Empty chunks dont need to be added to LoadedChunks
+                        lock (_populatedChunks)
                         {
-                            //Reset chunk time so it will not be unloaded
-                            if (LoadedChunks.TryGetValue(chunkPos, out var chunk)) chunk.Time = DateTime.Now;
-                            continue;
-                        }
-
-                        var cachedChunk = LoadChunk(chunkPos);
-
-                        if (cachedChunk.IsEmpty)
-                        {
-                            //Empty chunks dont need to be added to LoadedChunks
-                            lock (_populatedChunks)
-                            {
-                                _populatedChunks.Add(chunkPos);
-                            }
-                        }
-                        else
-                        {
-                            lock (_chunksReadyToAdd)
-                            {
-                                _chunksReadyToAdd.Add(chunkPos, cachedChunk);
-                            }
-                            chunksWaitingForNeighbours.Add(chunkPos);
+                            _populatedChunks.Add(chunkPos);
                         }
                     }
-
-                    //TODO: Load player view frustum
-
+                    else
+                    {
+                        lock (_chunksReadyToAdd)
+                        {
+                            _chunksReadyToAdd.Add(chunkPos, cachedChunk);
+                        }
+                        chunksWaitingForNeighbours.Add(chunkPos);
+                    }
                 }
-                Thread.Sleep(10);
+
+                Thread.Sleep(1);
             }
         }
 
@@ -460,8 +508,12 @@ namespace MinecraftClone3API.Blocks
             var block = GetBlock(blockPos);
             if (block.IsOpaqueFullBlock(this, blockPos))
             {
+                var oldLightLevel = GetBlockLightLevel(blockPos);
                 SetBlockLightLevel(blockPos, LightLevel.Zero);
-                //TODO: occlude light
+
+                for (var color = 0; color < 3; color++)
+                    OccludeLight(blockPos, oldLightLevel[color], color);
+
                 return;
             }
 
@@ -490,6 +542,7 @@ namespace MinecraftClone3API.Blocks
         {
             var tmp = new Dictionary<Vector3i, int>();
             var spread = new Dictionary<Vector3i, int> {{blockPos, maxLight } };
+            var done = new HashSet<Vector3i> {blockPos};
 
             while (spread.Count > 0)
             {
@@ -497,12 +550,13 @@ namespace MinecraftClone3API.Blocks
                 foreach (var face in BlockFaceHelper.Faces)
                 {
                     var neighbourPos = entry.Key + face.GetNormali();
-                    if (spread.ContainsKey(neighbourPos) || tmp.ContainsKey(neighbourPos)) continue;
+                    if (done.Contains(neighbourPos)) continue;
                     if (GetBlock(neighbourPos).IsOpaqueFullBlock(this, neighbourPos)) continue;
                     if (GetBlockLightLevelColor(neighbourPos, color) >= entry.Value - 1) continue;
 
                     SetBlockLightLevelColor(neighbourPos, entry.Value - 1, color);
                     tmp.Add(neighbourPos, entry.Value - 1);
+                    done.Add(neighbourPos);
                 }
 
                 spread.Clear();
@@ -510,6 +564,11 @@ namespace MinecraftClone3API.Blocks
                     spread.Add(entry.Key, entry.Value);
                 tmp.Clear();
             }
+        }
+
+        private void OccludeLight(Vector3i blockPos, int oldLightLevel, int color)
+        {
+            
         }
 
         private CachedChunk LoadChunk(Vector3i position)
@@ -529,13 +588,14 @@ namespace MinecraftClone3API.Blocks
                 var height = OpenSimplexNoise.Generate((worldMin.X + x)*0.06f, (worldMin.Z + z)*0.06f)*5;
                 height += OpenSimplexNoise.Generate((worldMin.X + x) * 0.1f, (worldMin.Z + z) * 0.1f)*2;
                 height += OpenSimplexNoise.Generate((worldMin.X + x) * 0.005f, (worldMin.Z + z) * 0.005f) * 10;
-                //height = 0;
+                height = 0;
 
+                    
                     for (var y = 0; y < Chunk.Size; y++)
                     if (worldMin.Y + y <= height)
-                        chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Grass") : GameRegistry.GetBlock("Vanilla:Dirt"));
+                        chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Stone") : GameRegistry.GetBlock("Vanilla:Dirt"));
                         
-                        /*
+                   /*     
                 for (var y = 0; y < Chunk.Size; y++)
                 {
                     var density = (OpenSimplexNoise.Generate((worldMin.X + x) * 0.045f, (worldMin.Y + y) * 0.075f, (worldMin.Z + z) * 0.045f) +1)*30;
