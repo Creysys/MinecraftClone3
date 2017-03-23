@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
+using OpenTK;
 
 namespace MinecraftClone3API.Blocks
 {
@@ -10,6 +11,9 @@ namespace MinecraftClone3API.Blocks
     {
         public const int Size = 16;
         public const float Radius = Size * 0.8660254F;      //a*sqrt(3)/2
+
+        public Vector3 Middle => (Position * Size + new Vector3i(Size / 2)).ToVector3();
+        public bool HasTransparency => _transparentVao.UploadedCount > 0;
 
         public readonly World World;
         public readonly Vector3i Position;
@@ -27,6 +31,7 @@ namespace MinecraftClone3API.Blocks
         private Vector3i _max = new Vector3i(-1);
 
         private readonly VertexArrayObject _vao = new VertexArrayObject();
+        private readonly SortedVertexArrayObject _transparentVao = new SortedVertexArrayObject();
 
 
         public Chunk(World world, Vector3i position)
@@ -86,25 +91,38 @@ namespace MinecraftClone3API.Blocks
 
         public void Update()
         {
-            lock (_vao) AddBlocksToVao();
+            lock (_vao)
+            lock (_transparentVao)
+                AddBlocksToVao();
+
             Updated = true;
         }
 
         public void Upload()
         {
             lock (_vao)
+            lock (_transparentVao)
             {
                 _vao.Upload();
                 _vao.Clear();
+
+                _transparentVao.Upload();
+                _transparentVao.Clear();
             }
             Uploaded = true;
         }
 
         public void Draw() => _vao.Draw();
+        public void DrawTransparent() => _transparentVao.Draw();
 
         public void Dispose()
         {
-            lock (_vao) _vao.Dispose();
+            lock (_vao)
+            lock (_transparentVao)
+            {
+                _vao.Dispose();
+                _transparentVao.Dispose();
+            }
         }
 
         public void Write(BinaryWriter writer)
@@ -132,7 +150,7 @@ namespace MinecraftClone3API.Blocks
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
                 VaoHelper.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
-                    GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao);
+                    GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao, _transparentVao);
         }
     }
 }

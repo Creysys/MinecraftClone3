@@ -506,7 +506,8 @@ namespace MinecraftClone3API.Blocks
             stopwatch.Start();
 
             var block = GetBlock(blockPos);
-            if (block.IsOpaqueFullBlock(this, blockPos))
+            if (block.IsVisible(this, blockPos) && block.IsFullBlock(this, blockPos) &&
+                !block.IsTransparent(this, blockPos))
             {
                 var oldLightLevel = GetBlockLightLevel(blockPos);
                 SetBlockLightLevel(blockPos, LightLevel.Zero);
@@ -551,7 +552,11 @@ namespace MinecraftClone3API.Blocks
                 {
                     var neighbourPos = entry.Key + face.GetNormali();
                     if (done.Contains(neighbourPos)) continue;
-                    if (GetBlock(neighbourPos).IsOpaqueFullBlock(this, neighbourPos)) continue;
+
+                    var block = GetBlock(neighbourPos);
+                    if (block.IsVisible(this, neighbourPos) && block.IsFullBlock(this, neighbourPos) &&
+                        !block.IsTransparent(this, neighbourPos)) continue;
+
                     if (GetBlockLightLevelColor(neighbourPos, color) >= entry.Value - 1) continue;
 
                     SetBlockLightLevelColor(neighbourPos, entry.Value - 1, color);

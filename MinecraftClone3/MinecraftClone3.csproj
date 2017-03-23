@@ -56,16 +56,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Entities\PlayerController.cs" />
-    <Compile Include="Graphics\BoundingBoxRenderer.cs" />
-    <Compile Include="Graphics\Camera.cs" />
-    <Compile Include="Graphics\GeometryFramebuffer.cs" />
-    <Compile Include="Graphics\LightFramebuffer.cs" />
-    <Compile Include="Graphics\Samplers.cs" />
-    <Compile Include="Graphics\WorldRenderer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ClientResources.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -74,6 +66,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Blocks\" />
+    <Folder Include="Entities\" />
+    <Folder Include="Graphics\" />
     <Folder Include="Utils\" />
   </ItemGroup>
   <ItemGroup>

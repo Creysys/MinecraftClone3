@@ -1,26 +1,30 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using MinecraftClone3.Entities;
 using MinecraftClone3API.Blocks;
-using MinecraftClone3API.Graphics;
+using MinecraftClone3API.Entities;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 
-namespace MinecraftClone3.Graphics
+namespace MinecraftClone3API.Graphics
 {
-    internal static class WorldRenderer
+    public static class WorldRenderer
     {
-        public static void RenderWorld(World world, Camera camera, Matrix4 projection)
+        public const float RenderDistance = 256;
+        public const float RenderDistanceSq = RenderDistance * RenderDistance;
+
+        public const float SortDistance = 32;
+        public const float SortDistanceSq = SortDistance * SortDistance;
+
+        public static void RenderWorld(World world, Matrix4 projection)
         {
-            var viewProjection = camera.View * projection;
+            var viewProjection = PlayerController.Camera.View * projection;
             var viewFrustum = Frustum.FromViewProjection(viewProjection);
 
             //Wireframe
             //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
 
-            DrawGeometryFramebuffer(world, camera, projection, viewFrustum);
+            DrawGeometryFramebuffer(world, PlayerController.Camera, projection, viewFrustum);
             //DrawLightFramebuffer(world, viewProjection.Inverted(), viewFrustum);
 
             //GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
@@ -31,16 +35,32 @@ namespace MinecraftClone3.Graphics
         private static void DrawGeometryFramebuffer(World world, Camera camera, Matrix4 projection, Frustum viewFrustum)
         {
             var chunksToDraw = new List<Chunk>();
+            var chunksToSort = new List<Chunk>();
+
             foreach (var entry in world.LoadedChunks)
             {
                 //Check if chunk is in player view frustum
                 var chunkMiddle = (entry.Key * Chunk.Size + new Vector3i(Chunk.Size / 2)).ToVector3();
+
                 if (!viewFrustum.SpehereIntersection(chunkMiddle, Chunk.Radius))
                     continue;
 
-                chunksToDraw.Add(entry.Value);
+                var lengthSq = (camera.Position - chunkMiddle).LengthSquared;
+                if (lengthSq > RenderDistanceSq) continue;
+
+                if(entry.Value.HasTransparency && lengthSq < SortDistanceSq)
+                    chunksToSort.Add(entry.Value);
+                else
+                    chunksToDraw.Add(entry.Value);
             }
 
+            var cameraPos = camera.Position;
+            chunksToSort.Sort((chunk1, chunk2)
+                => (int) ((cameraPos - chunk1.Middle).LengthSquared * 1000 -
+                          (cameraPos - chunk2.Middle).LengthSquared * 1000));
+
+            chunksToSort.AddRange(chunksToDraw);
+            chunksToDraw = chunksToSort;
 
             GL.Enable(EnableCap.CullFace);
             GL.Enable(EnableCap.DepthTest);
@@ -55,6 +75,7 @@ namespace MinecraftClone3.Graphics
             BlockTextureManager.Bind();
             Samplers.BindBlockTextureSampler();
             
+            //Draw opaque blocks front to back
             foreach (var chunk in chunksToDraw)
             {
                 var worldMat = Matrix4.CreateTranslation(chunk.Position.X * Chunk.Size, chunk.Position.Y * Chunk.Size,
@@ -63,10 +84,23 @@ namespace MinecraftClone3.Graphics
                 chunk.Draw();
             }
 
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+
+            //Draw transparent block back to front
+            for (var i = chunksToDraw.Count - 1; i >= 0; i--)
+            {
+                var chunk = chunksToDraw[i];
+                var worldMat = Matrix4.CreateTranslation(chunk.Position.X * Chunk.Size, chunk.Position.Y * Chunk.Size,
+                    chunk.Position.Z * Chunk.Size);
+                GL.UniformMatrix4(0, false, ref worldMat);
+                chunk.DrawTransparent();
+            }
+
             //TODO: Entities
             PlayerController.Render(camera, projection);
 
-            ClientResources.GeometryFramebuffer.Unbind(Program.Window.Width, Program.Window.Height);
+            ClientResources.GeometryFramebuffer.Unbind(ClientResources.Window.Width, ClientResources.Window.Height);
         }
 
         private static void DrawLightFramebuffer(World world, Matrix4 viewProjectionInv, Frustum viewFrustum)

@@ -1,9 +1,9 @@
-﻿using MinecraftClone3API.Graphics;
+﻿using MinecraftClone3API.Util;
 using OpenTK.Graphics.OpenGL4;
 
-namespace MinecraftClone3.Graphics
+namespace MinecraftClone3API.Graphics
 {
-    internal class TextureFramebuffer : Framebuffer
+    public class TextureFramebuffer : Framebuffer
     {
         public readonly Texture Texture;
 
@@ -30,7 +30,7 @@ namespace MinecraftClone3.Graphics
             GL.DrawBuffers(1, new[] { DrawBuffersEnum.ColorAttachment0 });
             CheckFramebufferStatus();
 
-            Unbind(Program.Window.Width, Program.Window.Height);
+            Unbind(ClientResources.Window.Width, ClientResources.Window.Height);
         }
     }
 }

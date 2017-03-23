@@ -37,7 +37,7 @@ namespace MinecraftClone3API.Util
         private static readonly uint[] FaceIndices = {2, 1, 0, 2, 3, 1};
         private static readonly uint[] FlippedFaceIndices = { 0, 2, 3, 0, 3, 1 };
 
-        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, VertexArrayObject vao)
+        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, VertexArrayObject vao, VertexArrayObject transparentVao)
         {
             if (!block.IsVisible(world, blockPos)) return;
 
@@ -45,8 +45,17 @@ namespace MinecraftClone3API.Util
             {
                 var otherBlockPos = blockPos + face.GetNormali();
                 var otherBlock = world.GetBlock(otherBlockPos);
-                if (!block.IsOpaqueFullBlock(world, blockPos) || !otherBlock.IsVisible(world, otherBlockPos) || !otherBlock.IsOpaqueFullBlock(world, otherBlockPos))
-                    AddFaceToVao(world, blockPos, x, y, z, block, face, vao);
+
+                var fullBlock = block.IsFullBlock(world, blockPos);
+                var transparent = block.IsTransparent(world, blockPos);
+
+                var otherFullBlock = otherBlock.IsFullBlock(world, otherBlockPos);
+                var otherTransparent = otherBlock.IsTransparent(world, otherBlockPos);
+
+                if (otherBlock.IsVisible(world, otherBlockPos) &&
+                    (otherTransparent ? transparent : fullBlock && otherFullBlock)) continue;
+
+                AddFaceToVao(world, blockPos, x, y, z, block, face, transparent ? transparentVao : vao);
             }
         }
 
@@ -123,13 +132,19 @@ namespace MinecraftClone3API.Util
                     newIndices[j] = (uint)(FaceIndices[j] + indicesOffset);
             }
 
-            vao.AddIndices(newIndices);
+            //Calculate face middle
+            var faceMiddle = Vector3.Zero;
+            foreach (var pos in vPositions)
+                faceMiddle += pos;
+            faceMiddle = faceMiddle / vPositions.Length + blockPos.ToVector3() - new Vector3(x, y, z);
+
+            vao.AddFace(newIndices, faceMiddle);
         }
 
         private static Vector3 CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
         {
             //if its not a full opaque block return brightness of itself
-            if (!block.IsOpaqueFullBlock(world, blockPos))
+            if (!block.IsFullBlock(world, blockPos))
                 return LightLevelToBrightness(world.GetBlockLightLevel(blockPos).Vector3);
 
             //TODO: smooth lighting setting
@@ -168,7 +183,7 @@ namespace MinecraftClone3API.Util
 
         private const float Base = 0.8f;
         //private const float Base = 1f;
-        //private const float Base = 0.897499991f;
+        private const float CustomBase = 0.897499991f;
 
         private static Vector3 LightLevelToBrightness(Vector3 lightLevel)
         {
@@ -184,8 +199,10 @@ namespace MinecraftClone3API.Util
 
         private static float CustomLightLevelToBrightness(float lightLevel)
         {
-            var a = (lightLevel + 16) / LightLevel.Max;
-            return a * lightLevel / 31f + (1 - a) * VanillaLightLevelToBrightness(lightLevel);
+            //if(lightLevel < 15) return VanillaLightLevelToBrightness(lightLevel);
+
+            return (float)Math.Pow(CustomBase, Math.Max(31 - lightLevel, 0));
+            //return (float)Math.Pow(0.8, 1 - (lightLevel - 14) / 17);
         }
     }
 }

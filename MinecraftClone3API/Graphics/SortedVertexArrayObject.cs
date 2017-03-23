@@ -1,61 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
+using MinecraftClone3API.Blocks;
+using MinecraftClone3API.Entities;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 
 namespace MinecraftClone3API.Graphics
 {
-    public class VertexArrayObject : IDisposable
+    public class SortedVertexArrayObject : VertexArrayObject
     {
-        protected readonly int _vaoId;
-        protected readonly int[] _bufferIds = new int[6];
-        protected readonly int _indicesId;
-
-        protected List<Vector3> _positions;
-        protected List<Vector4> _texCoords;
-        protected List<Vector4> _overlayTexCoords;
-        protected List<Vector4> _normals;
-        protected List<Vector4> _colors;
-        protected List<Vector4> _overlayColors;
-        protected List<uint> _indices;
-
-        public int UploadedCount;
-        public int VertexCount => (_positions?.Count).GetValueOrDefault();
-        public int IndicesCount => (_indices?.Count).GetValueOrDefault();
-
-        public VertexArrayObject()
+        private class FaceInfo : IComparable<FaceInfo>
         {
-            _vaoId = GL.GenVertexArray();
-            GL.GenBuffers(_bufferIds.Length, _bufferIds);
-            _indicesId = GL.GenBuffer();
-        }
+            private readonly Vector3 _position;
 
-        public virtual void Add(Vector3 position, Vector4 texCoord, Vector4 overlayTexCoord, Vector4 normal, Vector4 color, Vector4 overlayColor)
-        {
-            if (_positions == null)
+            public readonly uint[] Indices;
+
+            public FaceInfo(Vector3 position, uint[] indices)
             {
-                _positions = new List<Vector3>(1024);
-                _texCoords = new List<Vector4>(1024);
-                _overlayTexCoords = new List<Vector4>(1024);
-                _normals = new List<Vector4>(1024);
-                _colors = new List<Vector4>(1024);
-                _overlayColors = new List<Vector4>(1024);
-
-                _indices = new List<uint>(1024);
+                _position = position;
+                Indices = indices;
             }
 
-            _positions.Add(position);
-            _texCoords.Add(texCoord);
-            _overlayTexCoords.Add(overlayTexCoord);
-            _normals.Add(normal);
-            _colors.Add(color);
-            _overlayColors.Add(overlayColor);
+            public int CompareTo(FaceInfo other)
+            {
+                var cameraPos = PlayerController.Camera.Position;
+                return (int) ((cameraPos - other._position).LengthSquared * 10000 - (cameraPos - _position).LengthSquared * 10000);
+            }
         }
-        
-        public virtual void AddFace(uint[] indices, Vector3 faceMiddle) => _indices.AddRange(indices);
 
-        public virtual void Upload()
+        private List<FaceInfo> _faceInfos = new List<FaceInfo>(1024);
+        private FaceInfo[] _uploadedFaces;
+
+        public override void AddFace(uint[] indices, Vector3 faceMiddle)
+        {
+            _indices.AddRange(indices);
+
+            if(_faceInfos == null)
+                _faceInfos = new List<FaceInfo>();
+
+            _faceInfos.Add(new FaceInfo(faceMiddle, indices));
+        }
+
+        public override void Upload()
         {
             if (IndicesCount <= 0)
             {
@@ -132,38 +119,33 @@ namespace MinecraftClone3API.Graphics
                     BufferUsageHint.StaticDraw);
             }
 
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indicesId);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Count * sizeof(uint), _indices.ToArray(),
-                BufferUsageHint.StaticDraw);
+            _uploadedFaces = _faceInfos.ToArray();
 
             UploadedCount = _indices.Count;
         }
 
-        public virtual void Draw() => Draw(BeginMode.Triangles);
-        public virtual void Draw(BeginMode mode)
+        public override void Clear()
+        {
+            base.Clear();
+
+            _faceInfos = null;
+        }
+
+        public override void Draw(BeginMode mode)
         {
             if (UploadedCount <= 0) return;
 
+            Array.Sort(_uploadedFaces);
+
+            var sortedIndices = new List<uint>();
+            foreach (var face in _uploadedFaces)
+                sortedIndices.AddRange(face.Indices);
+
             GL.BindVertexArray(_vaoId);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indicesId);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, sortedIndices.Count * sizeof(uint), sortedIndices.ToArray(), BufferUsageHint.DynamicDraw);
+
             GL.DrawElements(mode, UploadedCount, DrawElementsType.UnsignedInt, 0);
-        }
-
-        public virtual void Clear()
-        {
-            _positions = null;
-            _texCoords = null;
-            _overlayTexCoords = null;
-            _normals = null;
-            _colors = null;
-            _overlayColors = null;
-            _indices = null;
-        }
-
-        public virtual void Dispose()
-        {
-            GL.DeleteBuffer(_indicesId);
-            GL.DeleteBuffers(_bufferIds.Length, _bufferIds);
-            GL.DeleteVertexArray(_vaoId);
         }
     }
 }

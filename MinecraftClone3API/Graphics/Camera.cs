@@ -2,9 +2,9 @@
 using MinecraftClone3API.Entities;
 using OpenTK;
 
-namespace MinecraftClone3.Graphics
+namespace MinecraftClone3API.Graphics
 {
-    internal class Camera
+    public class Camera
     {
         public Entity ParentEntity;
 

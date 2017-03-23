@@ -19,7 +19,8 @@ namespace MinecraftClone3API.Blocks
         public ushort Id { get; internal set; }
 
         public virtual bool IsVisible(World world, Vector3i blockPos) => true;
-        public virtual bool IsOpaqueFullBlock(World world, Vector3i blockPos) => true;
+        public virtual bool IsFullBlock(World world, Vector3i blockPos) => true;
+        public virtual bool IsTransparent(World world, Vector3i blockPos) => false;
         public virtual bool CanPassThrough(World world, Vector3i blockPos) => false;
         public virtual bool CanTarget(World world, Vector3i vector3I) => true;
 

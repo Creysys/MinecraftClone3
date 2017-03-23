@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BlockBasic.cs" />
+    <Compile Include="BlockGlass.cs" />
     <Compile Include="BlockGrass.cs" />
     <Compile Include="BlockTorch.cs" />
     <Compile Include="VanillaPlugin.cs" />

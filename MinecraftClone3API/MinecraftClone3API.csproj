@@ -53,10 +53,18 @@
   <ItemGroup>
     <Compile Include="Blocks\Block.cs" />
     <Compile Include="Blocks\BlockData.cs" />
+    <Compile Include="Entities\PlayerController.cs" />
     <Compile Include="Graphics\BlockTextureManager.cs" />
+    <Compile Include="Graphics\BoundingBoxRenderer.cs" />
+    <Compile Include="Graphics\Camera.cs" />
     <Compile Include="Graphics\Framebuffer.cs" />
+    <Compile Include="Graphics\GeometryFramebuffer.cs" />
     <Compile Include="Graphics\Light.cs" />
+    <Compile Include="Graphics\LightFramebuffer.cs" />
     <Compile Include="Graphics\PointLight.cs" />
+    <Compile Include="Graphics\Samplers.cs" />
+    <Compile Include="Graphics\SortedVertexArrayObject.cs" />
+    <Compile Include="Graphics\WorldRenderer.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\FileSystemCompressed.cs" />
     <Compile Include="IO\FileSystemRaw.cs" />
@@ -76,6 +84,7 @@
     <Compile Include="Blocks\World.cs" />
     <Compile Include="Entities\Entity.cs" />
     <Compile Include="Entities\EntityPlayer.cs" />
+    <Compile Include="Util\ClientResources.cs" />
     <Compile Include="Util\ExtensionHelper.cs" />
     <Compile Include="Util\Frustum.cs" />
     <Compile Include="Util\GameRegistry.cs" />

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.IO;
-using MinecraftClone3.Entities;
-using MinecraftClone3.Graphics;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
 using MinecraftClone3API.Graphics;
@@ -15,8 +13,7 @@ namespace MinecraftClone3
 {
     internal class Program
     {
-        private static readonly EntityPlayer _playerEntity = new EntityPlayer(){Position = new Vector3(0, 2, 0)};
-        private static readonly Camera _camera = new Camera(_playerEntity);
+        private static readonly EntityPlayer _playerEntity = new EntityPlayer {Position = new Vector3(0, 2, 0)};
 
         public static GameWindow Window;
 
@@ -31,7 +28,7 @@ namespace MinecraftClone3
             {
                 CursorVisible = false,
                 TargetUpdateFrequency = 120,
-                VSync = VSyncMode.On
+                VSync = VSyncMode.Off
             };
             Window.Closed += WindowOnClosed;
             Window.Resize += WindowOnResize;
@@ -49,7 +46,7 @@ namespace MinecraftClone3
             PlayerController.SetEntity(_playerEntity);
             PluginManager.LoadPlugins();
 
-            ClientResources.Load();
+            ClientResources.Load(Window);
             BoundingBoxRenderer.Load();
 
             BlockTextureManager.Upload();
@@ -84,12 +81,11 @@ namespace MinecraftClone3
             PlayerController.Update(Window, _world);
 
             _world.Update();
-            _camera.Update();
         }
 
         private static void WindowOnRenderFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            WorldRenderer.RenderWorld(_world, _camera, projection);
+            WorldRenderer.RenderWorld(_world, projection);
 
             Window.SwapBuffers();
 

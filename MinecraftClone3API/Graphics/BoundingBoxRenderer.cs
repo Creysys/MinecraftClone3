@@ -1,12 +1,11 @@
-﻿using MinecraftClone3API.Graphics;
-using MinecraftClone3API.Util;
+﻿using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 
-namespace MinecraftClone3.Graphics
+namespace MinecraftClone3API.Graphics
 {
-    static class BoundingBoxRenderer
+    public class BoundingBoxRenderer
     {
         private static readonly Vector3[] Vertices =
         {
@@ -32,7 +31,7 @@ namespace MinecraftClone3.Graphics
             _vbo = new VertexArrayObject();
             foreach (var vertex in Vertices)
                 _vbo.Add(vertex, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            _vbo.AddIndices(Indices);
+            _vbo.AddFace(Indices, Vector3.Zero);
             _vbo.Upload();
         }
 

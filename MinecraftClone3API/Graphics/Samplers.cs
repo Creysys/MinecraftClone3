@@ -1,7 +1,6 @@
-﻿using MinecraftClone3API.Graphics;
-using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics.OpenGL4;
 
-namespace MinecraftClone3.Graphics
+namespace MinecraftClone3API.Graphics
 {
     public static class Samplers
     {

@@ -1,25 +1,30 @@
 ﻿using System;
-using MinecraftClone3.Graphics;
 using MinecraftClone3API.Blocks;
-using MinecraftClone3API.Entities;
+using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Input;
 
-namespace MinecraftClone3.Entities
+namespace MinecraftClone3API.Entities
 {
-    internal static class PlayerController
+    public static class PlayerController
     {
-        private static EntityPlayer _playerEntity;
+        public static EntityPlayer PlayerEntity;
+        public static Camera Camera = new Camera();
+
         private static MouseState? _oldMouseState;
         private static BlockRaytraceResult _blockRaytrace;
         private static string _currentBlock = "Vanilla:Torch";
 
-        public static void SetEntity(EntityPlayer playerEntity) => _playerEntity = playerEntity;
+        public static void SetEntity(EntityPlayer playerEntity)
+        {
+            PlayerEntity = playerEntity;
+            Camera.ParentEntity = playerEntity;
+        }
 
         public static void Update(GameWindow window, World world)
         {
-            _blockRaytrace = world.BlockRaytrace(_playerEntity.Position, _playerEntity.Forward, 8);
+            _blockRaytrace = world.BlockRaytrace(PlayerEntity.Position, PlayerEntity.Forward, 8);
             
             if (!window.Focused) return;
 
@@ -38,17 +43,18 @@ namespace MinecraftClone3.Entities
             if (ks.IsKeyDown(Key.W))
                 a.Z += 1;
             if (Math.Abs(a.LengthSquared) > 0.0001f)
-                _playerEntity.Move(a.Normalized() * 0.08f);
+                PlayerEntity.Move(a.Normalized() * 0.08f);
 
             if (ks.IsKeyDown(Key.Number1)) _currentBlock = "Vanilla:Torch";
             if (ks.IsKeyDown(Key.Number2)) _currentBlock = "Vanilla:Dirt";
+            if (ks.IsKeyDown(Key.Number3)) _currentBlock = "Vanilla:Glass";
 
             var ms = Mouse.GetState();
             if (_oldMouseState != null)
             {
                 var pitch = _oldMouseState.Value.Y - ms.Y;
                 var yaw = _oldMouseState.Value.X - ms.X;
-                _playerEntity.Rotate(pitch * 0.008f, yaw * 0.008f);
+                PlayerEntity.Rotate(pitch * 0.008f, yaw * 0.008f);
 
                 if (_oldMouseState.Value.LeftButton == ButtonState.Released && ms.LeftButton == ButtonState.Pressed)
                     BreakBlock(world);
@@ -57,6 +63,8 @@ namespace MinecraftClone3.Entities
             }
             _oldMouseState = ms;
             Mouse.SetPosition(window.X + window.Width / 2, window.Y + window.Height / 2);
+
+            Camera.Update();
         }
 
         private static void BreakBlock(World world)
@@ -70,7 +78,7 @@ namespace MinecraftClone3.Entities
             if (_blockRaytrace == null) return;
             world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock(_currentBlock));
 
-            Logger.Debug(_playerEntity.Position.ToString() + ":" + _blockRaytrace.BlockPos);
+            Logger.Debug(PlayerEntity.Position + ":" + _blockRaytrace.BlockPos);
         }
 
         public static void ResetMouse()

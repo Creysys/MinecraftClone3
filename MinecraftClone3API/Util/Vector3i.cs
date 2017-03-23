@@ -18,6 +18,9 @@ namespace MinecraftClone3API.Util
         public static bool operator ==(Vector3i v0, Vector3i v1) => v0.Equals(v1);
         public static bool operator !=(Vector3i v0, Vector3i v1) => !v0.Equals(v1);
 
+
+        public static Vector3i Zero = new Vector3i(0);
+
         public int X { get; set; }
         public int Y { get; set; }
         public int Z { get; set; }

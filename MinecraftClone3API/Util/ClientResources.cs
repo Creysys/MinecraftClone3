@@ -1,13 +1,14 @@
-﻿using MinecraftClone3.Graphics;
-using MinecraftClone3API.Graphics;
+﻿using MinecraftClone3API.Graphics;
 using MinecraftClone3API.IO;
 using OpenTK;
 
-namespace MinecraftClone3
+namespace MinecraftClone3API.Util
 {
-    internal static class ClientResources
+    public static class ClientResources
     {
         private const string PluginDir = "Client/";
+
+        public static GameWindow Window;
 
         public static GeometryFramebuffer GeometryFramebuffer;
         public static TextureFramebuffer LightFramebuffer;
@@ -19,10 +20,12 @@ namespace MinecraftClone3
 
         public static VertexArrayObject ScreenRectVao;
 
-        public static void Load()
+        public static void Load(GameWindow window)
         {
+            Window = window;
+
             ResizeFrameBuffers();
-            Program.Window.Resize += (sender, args) => ResizeFrameBuffers();
+            Window.Resize += (sender, args) => ResizeFrameBuffers();
 
             WorldGeometryShader = ResourceReader.ReadShader(PluginDir + "Shaders/WorldGeometry");
             CompositionShader = ResourceReader.ReadShader(PluginDir + "Shaders/Composition");
@@ -34,7 +37,7 @@ namespace MinecraftClone3
             ScreenRectVao.Add(new Vector3(+1, +1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
             ScreenRectVao.Add(new Vector3(-1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
             ScreenRectVao.Add(new Vector3(+1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.AddIndices(new uint[] {0, 2, 1, 1, 2, 3});
+            ScreenRectVao.AddFace(new uint[] {0, 2, 1, 1, 2, 3}, Vector3.Zero);
             ScreenRectVao.Upload();
 
             Samplers.Load();
@@ -43,10 +46,10 @@ namespace MinecraftClone3
         private static void ResizeFrameBuffers()
         {
             GeometryFramebuffer?.Dispose();
-            GeometryFramebuffer = new GeometryFramebuffer(Program.Window.Width, Program.Window.Height);
+            GeometryFramebuffer = new GeometryFramebuffer(Window.Width, Window.Height);
 
             LightFramebuffer?.Dispose();
-            LightFramebuffer = new TextureFramebuffer(Program.Window.Width, Program.Window.Height, false);
+            LightFramebuffer = new TextureFramebuffer(Window.Width, Window.Height, false);
         }
     }
 }
