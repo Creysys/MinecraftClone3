@@ -75,13 +75,13 @@ namespace MinecraftClone3API.Blocks
 
             if (LoadedChunks.TryGetValue(chunkInWorld, out var chunk))
             {
-                if (chunk.GetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z) == block.Id) return;
-                chunk.SetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, block.Id);
+                if (chunk.GetBlock(blockInChunk) == block.Id) return;
+                chunk.SetBlock(blockInChunk, block.Id);
             }
             else
             {
                 chunk = new Chunk(this, chunkInWorld);
-                chunk.SetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, block.Id);
+                chunk.SetBlock(blockInChunk, block.Id);
                 lock (LoadedChunks)
                 {
                     LoadedChunks.Add(chunkInWorld, chunk);
@@ -119,8 +119,39 @@ namespace MinecraftClone3API.Blocks
             var blockInChunk = BlockInChunk(x, y, z);
 
             return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
-                ? GameRegistry.GetBlock(chunk.GetBlock(blockInChunk.X, blockInChunk.Y, blockInChunk.Z))
+                ? GameRegistry.GetBlock(chunk.GetBlock(blockInChunk))
                 : BlockRegistry.BlockAir;
+        }
+
+        public void SetBlockData(Vector3i blockPos, BlockData data)=> SetBlockData(blockPos.X, blockPos.Y, blockPos.Z, data);
+
+        public void SetBlockData(int x, int y, int z, BlockData data)
+        {
+            var chunkInWorld = ChunkInWorld(x, y, z);
+            var blockInChunk = BlockInChunk(x, y, z);
+
+            if (LoadedChunks.TryGetValue(chunkInWorld, out var chunk))
+                chunk.SetBlockData(blockInChunk, data);
+
+            var pos = new Vector3i(x, y, z);
+            lock (_queuedLightUpdates)
+            {
+                if (!_queuedLightUpdates.Contains(pos)) _queuedLightUpdates.Enqueue(pos);
+            }
+
+            if (blockInChunk.X == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(-1, 0, 0), false);
+            else if (blockInChunk.X == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(+1, 0, 0), false);
+            if (blockInChunk.Y == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, -1, 0), false);
+            else if (blockInChunk.Y == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, +1, 0), false);
+            if (blockInChunk.Z == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, -1), false);
+            else if (blockInChunk.Z == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, +1), false);
+            QueueChunkUpdate(chunk, false);
         }
 
         public void SetBlockLightLevel(Vector3i blockPos, LightLevel lightLevel)
@@ -131,7 +162,7 @@ namespace MinecraftClone3API.Blocks
             var blockInChunk = BlockInChunk(x, y, z);
 
             if (!LoadedChunks.TryGetValue(chunkInWorld, out var chunk)) return;
-            chunk.SetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z, lightLevel);
+            chunk.SetLightLevel(blockInChunk, lightLevel);
             QueueChunkUpdate(chunk, false);
         }
 
@@ -149,11 +180,20 @@ namespace MinecraftClone3API.Blocks
             var blockInChunk = BlockInChunk(x, y, z);
 
             return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk)
-                ? chunk.GetLightLevel(blockInChunk.X, blockInChunk.Y, blockInChunk.Z)
+                ? chunk.GetLightLevel(blockInChunk)
                 : LightLevel.Zero;
         }
 
-        public int GetBlockLightLevelColor(Vector3i blockPos, int color) => GetBlockLightLevel(blockPos)[color]; 
+        public int GetBlockLightLevelColor(Vector3i blockPos, int color) => GetBlockLightLevel(blockPos)[color];
+
+        public BlockData GetBlockData(Vector3i blockPos) => GetBlockData(blockPos.X, blockPos.Y, blockPos.Z);
+        public BlockData GetBlockData(int x, int y, int z)
+        {
+            var chunkInWorld = ChunkInWorld(x, y, z);
+            var blockInChunk = BlockInChunk(x, y, z);
+
+            return LoadedChunks.TryGetValue(chunkInWorld, out Chunk chunk) ? chunk.GetBlockData(blockInChunk) : null;
+        }
 
         public void QueueChunkUpdate(Vector3i chunkPos, bool lowPrioriity)
         {
@@ -230,6 +270,12 @@ namespace MinecraftClone3API.Blocks
             }
 
             return result;
+        }
+
+        public void PlaceBlock(EntityPlayer player, Vector3i blockPos, Block block)
+        {
+            SetBlock(blockPos, block);
+            block.OnPlaced(this, blockPos, player);
         }
 
         public void Update()
@@ -507,7 +553,7 @@ namespace MinecraftClone3API.Blocks
 
             var block = GetBlock(blockPos);
             if (block.IsVisible(this, blockPos) && block.IsFullBlock(this, blockPos) &&
-                !block.IsTransparent(this, blockPos))
+                block.IsTransparent(this, blockPos) == TransparencyType.None)
             {
                 var oldLightLevel = GetBlockLightLevel(blockPos);
                 SetBlockLightLevel(blockPos, LightLevel.Zero);
@@ -555,7 +601,7 @@ namespace MinecraftClone3API.Blocks
 
                     var block = GetBlock(neighbourPos);
                     if (block.IsVisible(this, neighbourPos) && block.IsFullBlock(this, neighbourPos) &&
-                        !block.IsTransparent(this, neighbourPos)) continue;
+                        block.IsTransparent(this, neighbourPos) == TransparencyType.None) continue;
 
                     if (GetBlockLightLevelColor(neighbourPos, color) >= entry.Value - 1) continue;
 
@@ -598,7 +644,7 @@ namespace MinecraftClone3API.Blocks
                     
                     for (var y = 0; y < Chunk.Size; y++)
                     if (worldMin.Y + y <= height)
-                        chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Stone") : GameRegistry.GetBlock("Vanilla:Dirt"));
+                        chunk.SetBlock(x, y, z, (worldMin.Y + y == (int)height) ? GameRegistry.GetBlock("Vanilla:Grass") : GameRegistry.GetBlock("Vanilla:Dirt"));
                         
                    /*     
                 for (var y = 0; y < Chunk.Size; y++)

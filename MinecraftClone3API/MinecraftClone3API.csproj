@@ -76,6 +76,7 @@
     <Compile Include="Plugins\PluginInfo.cs" />
     <Compile Include="Plugins\PluginManager.cs" />
     <Compile Include="Util\AxisAlignedBoundingBox.cs" />
+    <Compile Include="Util\BlockDataRegistryEntry.cs" />
     <Compile Include="Util\BlockRegistry.cs" />
     <Compile Include="Blocks\BlockAir.cs" />
     <Compile Include="Blocks\BlockFace.cs" />
@@ -102,7 +103,7 @@
     <Compile Include="Util\BlockRaytraceResult.cs" />
     <Compile Include="Util\CompressionHelper.cs" />
     <Compile Include="Util\Logger.cs" />
-    <Compile Include="Util\VaoHelper.cs" />
+    <Compile Include="Util\ChunkMesher.cs" />
     <Compile Include="Util\LightLevel.cs" />
     <Compile Include="Util\Vector3i.cs" />
     <Compile Include="Util\WorldSerializer.cs" />

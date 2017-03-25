@@ -1,4 +1,5 @@
-﻿using MinecraftClone3API.Blocks;
+﻿using System.CodeDom;
+using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Util;
 
 namespace MinecraftClone3API.Plugins
@@ -16,5 +17,6 @@ namespace MinecraftClone3API.Plugins
         }
 
         public void Register(Block block) => GameRegistry.BlockRegistry.Register(PluginAttribute.Id, block);
+        public void Register<T>() where T : BlockData => GameRegistry.BlockDataRegistry.Register(PluginAttribute.Id, new BlockDataRegistryEntry(typeof(T)));
     }
 }

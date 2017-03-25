@@ -3,10 +3,9 @@ using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
-using OpenTK;
 using OpenTK.Graphics;
 
-namespace VanillaPlugin
+namespace VanillaPlugin.Blocks
 {
     internal class BlockGrass : Block
     {

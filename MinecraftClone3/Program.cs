@@ -18,7 +18,7 @@ namespace MinecraftClone3
         public static GameWindow Window;
 
         private static World _world;
-        private static Matrix4 projection;
+        private static Matrix4 _projection;
         private static int _fpsCounter;
         private static double _fpsTimer;
 
@@ -54,7 +54,7 @@ namespace MinecraftClone3
             _world = new World();
             _world.PlayerEntities.Add(_playerEntity);
 
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width/Window.Height, 0.01f, 512);
+            _projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width/Window.Height, 0.01f, 512);
 
             Window.Run();
         }
@@ -66,7 +66,7 @@ namespace MinecraftClone3
 
         private static void WindowOnResize(object sender, EventArgs eventArgs)
         {
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width / Window.Height, 0.01f, 512);
+            _projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width / Window.Height, 0.01f, 512);
             GL.Viewport(Window.ClientSize);
         }
 
@@ -85,7 +85,7 @@ namespace MinecraftClone3
 
         private static void WindowOnRenderFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            WorldRenderer.RenderWorld(_world, projection);
+            WorldRenderer.RenderWorld(_world, _projection);
 
             Window.SwapBuffers();
 

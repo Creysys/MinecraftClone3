@@ -14,6 +14,8 @@ layout(binding = 1) uniform sampler2DArray uTextures64;
 layout(binding = 2) uniform sampler2DArray uTextures256;
 layout(binding = 3) uniform sampler2DArray uTextures1024;
 
+layout(location = 12) uniform bool uCutoff;
+
 vec4 GetDiffuse()
 {
 	if (inNormal.w == 1) return inColor;
@@ -40,6 +42,9 @@ vec4 GetDiffuse()
 
 	texColor.rgb = overlayTexColor.rgb * overlayTexColor.a + texColor.rgb * (1 - overlayTexColor.a);
 	texColor.a += overlayTexColor.a;
+	
+	if(uCutoff && texColor.a < 0.5) discard;
+	
 	return texColor;
 }
 

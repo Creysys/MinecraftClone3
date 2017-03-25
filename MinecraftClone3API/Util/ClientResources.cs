@@ -1,6 +1,10 @@
-﻿using MinecraftClone3API.Graphics;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using MinecraftClone3API.Graphics;
 using MinecraftClone3API.IO;
 using OpenTK;
+using OpenTK.Input;
 
 namespace MinecraftClone3API.Util
 {
@@ -19,6 +23,8 @@ namespace MinecraftClone3API.Util
         public static Shader BlockOutlineShader;
 
         public static VertexArrayObject ScreenRectVao;
+
+        public static readonly Dictionary<Key, string> Keybindings = new Dictionary<Key, string>();
 
         public static void Load(GameWindow window)
         {
@@ -41,6 +47,21 @@ namespace MinecraftClone3API.Util
             ScreenRectVao.Upload();
 
             Samplers.Load();
+
+            //TODO: Remove
+
+            var lines = File.ReadAllLines("Keybindings.txt");
+            foreach (var line in lines)
+            {
+                var splits = line.Split('=');
+
+                if (splits.Length != 2) continue;
+
+                if (Enum.TryParse(splits[0], true, out Key key))
+                {
+                    Keybindings.Add(key, splits[1]);
+                }
+            }
         }
 
         private static void ResizeFrameBuffers()

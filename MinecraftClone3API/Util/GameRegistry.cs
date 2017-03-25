@@ -9,6 +9,7 @@ namespace MinecraftClone3API.Util
         private const string RegistryFilename = "registry.bin";
 
         internal static readonly BlockRegistry BlockRegistry = new BlockRegistry();
+        internal static readonly Registry<BlockDataRegistryEntry> BlockDataRegistry = new Registry<BlockDataRegistryEntry>();
 
         public static List<string> GetMissingBlocks() => BlockRegistry.GetMissingBlocks();
 

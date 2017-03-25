@@ -5,7 +5,7 @@ using OpenTK;
 
 namespace MinecraftClone3API.Util
 {
-    internal static class VaoHelper
+    internal static class ChunkMesher
     {
         private static readonly Vector3[] FacePositions = {
             //left
@@ -37,7 +37,8 @@ namespace MinecraftClone3API.Util
         private static readonly uint[] FaceIndices = {2, 1, 0, 2, 3, 1};
         private static readonly uint[] FlippedFaceIndices = { 0, 2, 3, 0, 3, 1 };
 
-        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, VertexArrayObject vao, VertexArrayObject transparentVao)
+        public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block,
+            VertexArrayObject vao, VertexArrayObject transparentVao)
         {
             if (!block.IsVisible(world, blockPos)) return;
 
@@ -47,15 +48,20 @@ namespace MinecraftClone3API.Util
                 var otherBlock = world.GetBlock(otherBlockPos);
 
                 var fullBlock = block.IsFullBlock(world, blockPos);
-                var transparent = block.IsTransparent(world, blockPos);
+                var transparency = block.IsTransparent(world, blockPos);
 
                 var otherFullBlock = otherBlock.IsFullBlock(world, otherBlockPos);
-                var otherTransparent = otherBlock.IsTransparent(world, otherBlockPos);
+                var otherTransparency = otherBlock.IsTransparent(world, otherBlockPos);
 
-                if (otherBlock.IsVisible(world, otherBlockPos) &&
-                    (otherTransparent ? transparent : fullBlock && otherFullBlock)) continue;
+                var connectionType = block.ConnectsToBlock(world, blockPos, otherBlockPos, otherBlock);
 
-                AddFaceToVao(world, blockPos, x, y, z, block, face, transparent ? transparentVao : vao);
+                if (connectionType == ConnectionType.Connected) continue;
+                
+                if (connectionType == ConnectionType.Undefined && otherBlock.IsVisible(world, otherBlockPos) && 
+                    otherTransparency == TransparencyType.None && fullBlock && otherFullBlock) continue;
+
+                AddFaceToVao(world, blockPos, x, y, z, block, face,
+                    transparency == TransparencyType.Transparent ? transparentVao : vao);
             }
         }
 
@@ -132,11 +138,15 @@ namespace MinecraftClone3API.Util
                     newIndices[j] = (uint)(FaceIndices[j] + indicesOffset);
             }
 
-            //Calculate face middle
+            //Calculate face middle for transparency sorting
             var faceMiddle = Vector3.Zero;
-            foreach (var pos in vPositions)
-                faceMiddle += pos;
-            faceMiddle = faceMiddle / vPositions.Length + blockPos.ToVector3() - new Vector3(x, y, z);
+
+            if (vao is SortedVertexArrayObject)
+            {
+                foreach (var pos in vPositions)
+                    faceMiddle += pos;
+                faceMiddle = faceMiddle / vPositions.Length + blockPos.ToVector3() - new Vector3(x, y, z);
+            }
 
             vao.AddFace(newIndices, faceMiddle);
         }

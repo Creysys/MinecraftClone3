@@ -1,9 +1,9 @@
 ﻿using MinecraftClone3API.Blocks;
 using MinecraftClone3API.IO;
 
-namespace VanillaPlugin
+namespace VanillaPlugin.Blocks
 {
-    internal class BlockBasic : Block
+    public class BlockBasic : Block
     {
         public BlockBasic(string name, string texturePath) : base(name)
         {

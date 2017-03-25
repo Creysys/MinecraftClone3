@@ -50,44 +50,48 @@ namespace MinecraftClone3API.Blocks
             _max = cachedChunk.Max;
         }
 
-        public void SetBlock(int x, int y, int z, ushort id)
+        public void SetBlock(Vector3i blockPos, ushort id)
         {
-            if (_blockIds[x, y, z] == id) return;
+            if (_blockIds[blockPos.X, blockPos.Y, blockPos.Z] == id) return;
 
             NeedsSaving = true;
 
-            _blockIds[x, y, z] = id;
+            _blockIds[blockPos.X, blockPos.Y, blockPos.Z] = id;
 
-            if (x < _min.X) _min.X = x;
-            if (y < _min.Y) _min.Y = y;
-            if (z < _min.Z) _min.Z = z;
-            if (x > _max.X) _max.X = x;
-            if (y > _max.Y) _max.Y = y;
-            if (z > _max.Z) _max.Z = z;
+            if (blockPos.X < _min.X) _min.X = blockPos.X;
+            if (blockPos.Y < _min.Y) _min.Y = blockPos.Y;
+            if (blockPos.Z < _min.Z) _min.Z = blockPos.Z;
+            if (blockPos.X > _max.X) _max.X = blockPos.X;
+            if (blockPos.Y > _max.Y) _max.Y = blockPos.Y;
+            if (blockPos.Z > _max.Z) _max.Z = blockPos.Z;
         }
 
-        public ushort GetBlock(int x, int y, int z)
+        public ushort GetBlock(Vector3i blockPos)
         {
-            if (_blockIds == null || x < 0 || x >= Size || y < 0 || y >= Size || z < 0 || z >= Size)
+            if (_blockIds == null || blockPos.X < 0 || blockPos.X >= Size || blockPos.Y < 0 || blockPos.Y >= Size || blockPos.Z < 0 || blockPos.Z >= Size)
                 return 0;
 
-            return _blockIds[x, y, z];
+            return _blockIds[blockPos.X, blockPos.Y, blockPos.Z];
         }
 
-        public void SetLightLevel(int x, int y, int z, LightLevel lightLevel)
+        public void SetBlockData(Vector3i blockPos, BlockData data)
         {
             NeedsSaving = true;
-            _lightLevels[x, y, z] = lightLevel;
+            _blockDatas[blockPos] = data;
+        }
 
-            if (x < _min.X) _min.X = x;
-            if (y < _min.Y) _min.Y = y;
-            if (z < _min.Z) _min.Z = z;
-            if (x > _max.X) _max.X = x;
-            if (y > _max.Y) _max.Y = y;
-            if (z > _max.Z) _max.Z = z;
+        public BlockData GetBlockData(Vector3i blockPos)
+        {
+            return _blockDatas.TryGetValue(blockPos, out var data) ? data : null;
+        }
+
+        public void SetLightLevel(Vector3i blockPos, LightLevel lightLevel)
+        {
+            NeedsSaving = true;
+            _lightLevels[blockPos.X, blockPos.Y, blockPos.Z] = lightLevel;
         }
         
-        public LightLevel GetLightLevel(int x, int y, int z) => _lightLevels[x, y, z];
+        public LightLevel GetLightLevel(Vector3i blockPos) => _lightLevels[blockPos.X, blockPos.Y, blockPos.Z];
 
         public void Update()
         {
@@ -114,6 +118,8 @@ namespace MinecraftClone3API.Blocks
 
         public void Draw() => _vao.Draw();
         public void DrawTransparent() => _transparentVao.Draw();
+
+        public void SortTransparentFaces() => _transparentVao.Sort();
 
         public void Dispose()
         {
@@ -142,6 +148,15 @@ namespace MinecraftClone3API.Blocks
                 writer.Write(_blockIds[x, y, z]);
                 writer.Write(_lightLevels[x, y, z].Binary);
             }
+
+            writer.Write(_blockDatas.Count);
+            foreach (var data in _blockDatas)
+            {
+                writer.Write(data.Key.X);
+                writer.Write(data.Key.Y);
+                writer.Write(data.Key.Z);
+                //writer.Write(GameRegistry.);
+            }
         }
 
         private void AddBlocksToVao()
@@ -149,7 +164,7 @@ namespace MinecraftClone3API.Blocks
             for (var x = _min.X; x <= _max.X; x++)
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
-                VaoHelper.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
+                ChunkMesher.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
                     GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao, _transparentVao);
         }
     }

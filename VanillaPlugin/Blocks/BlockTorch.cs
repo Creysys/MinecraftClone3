@@ -4,7 +4,7 @@ using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Input;
 
-namespace VanillaPlugin
+namespace VanillaPlugin.Blocks
 {
     internal class BlockTorch : Block
     {

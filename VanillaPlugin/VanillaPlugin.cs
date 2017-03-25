@@ -1,4 +1,6 @@
 ﻿using MinecraftClone3API.Plugins;
+using VanillaPlugin.BlockDatas;
+using VanillaPlugin.Blocks;
 
 namespace VanillaPlugin
 {
@@ -16,6 +18,9 @@ namespace VanillaPlugin
             context.Register(new BlockGrass());
             context.Register(new BlockTorch());
             context.Register(new BlockGlass());
+            context.Register(new BlockTintedGlass());
+
+            context.Register<BlockDataMetadata>();
         }
 
         public void PostLoad(PluginContext context)

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
-using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 
@@ -34,8 +32,6 @@ namespace MinecraftClone3API.Graphics
 
         public override void AddFace(uint[] indices, Vector3 faceMiddle)
         {
-            _indices.AddRange(indices);
-
             if(_faceInfos == null)
                 _faceInfos = new List<FaceInfo>();
 
@@ -44,49 +40,49 @@ namespace MinecraftClone3API.Graphics
 
         public override void Upload()
         {
-            if (IndicesCount <= 0)
+            if (_faceInfos == null || _faceInfos.Count <= 0)
             {
                 UploadedCount = 0;
                 return;
             }
 
-            GL.BindVertexArray(_vaoId);
+            GL.BindVertexArray(VaoId);
 
             if (UploadedCount == 0)
             {
                 //0 positions
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[0]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _positions.Count * Vector3.SizeInBytes, _positions.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[0]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Positions.Count * Vector3.SizeInBytes, Positions.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(0);
                 GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
                 //1 texCoords
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[1]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector4.SizeInBytes, _texCoords.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[1]);
+                GL.BufferData(BufferTarget.ArrayBuffer, TexCoords.Count * Vector4.SizeInBytes, TexCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(1);
                 GL.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, 0);
                 //2 overlayTexCoords
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[2]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _overlayTexCoords.Count * Vector4.SizeInBytes, _overlayTexCoords.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[2]);
+                GL.BufferData(BufferTarget.ArrayBuffer, OverlayTexCoords.Count * Vector4.SizeInBytes, OverlayTexCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(2);
                 GL.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, 0, 0);
                 //3 normals
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[3]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _normals.Count * Vector4.SizeInBytes, _normals.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[3]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector4.SizeInBytes, Normals.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(3);
                 GL.VertexAttribPointer(3, 4, VertexAttribPointerType.Float, false, 0, 0);
                 //4 colors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[4]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _colors.Count * Vector4.SizeInBytes, _colors.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[4]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector4.SizeInBytes, Colors.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(4);
                 GL.VertexAttribPointer(4, 4, VertexAttribPointerType.Float, false, 0, 0);
                 //5 overlayColors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[5]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _overlayColors.Count * Vector4.SizeInBytes, _overlayColors.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[5]);
+                GL.BufferData(BufferTarget.ArrayBuffer, OverlayColors.Count * Vector4.SizeInBytes, OverlayColors.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(5);
                 GL.VertexAttribPointer(5, 4, VertexAttribPointerType.Float, false, 0, 0);
@@ -94,34 +90,40 @@ namespace MinecraftClone3API.Graphics
             else
             {
                 //0 positions
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[0]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _positions.Count * Vector3.SizeInBytes, _positions.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[0]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Positions.Count * Vector3.SizeInBytes, Positions.ToArray(),
                     BufferUsageHint.StaticDraw);
                 //1 texCoords
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[1]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _texCoords.Count * Vector4.SizeInBytes, _texCoords.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[1]);
+                GL.BufferData(BufferTarget.ArrayBuffer, TexCoords.Count * Vector4.SizeInBytes, TexCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
                 //2 overlayTexCoords
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[2]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _overlayTexCoords.Count * Vector4.SizeInBytes, _overlayTexCoords.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[2]);
+                GL.BufferData(BufferTarget.ArrayBuffer, OverlayTexCoords.Count * Vector4.SizeInBytes, OverlayTexCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
                 //3 normals
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[3]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _normals.Count * Vector3.SizeInBytes, _normals.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[3]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector3.SizeInBytes, Normals.ToArray(),
                     BufferUsageHint.StaticDraw);
                 //4 colors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[4]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _colors.Count * Vector4.SizeInBytes, _colors.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[4]);
+                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector4.SizeInBytes, Colors.ToArray(),
                     BufferUsageHint.StaticDraw);
                 //5 overlayColors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, _bufferIds[5]);
-                GL.BufferData(BufferTarget.ArrayBuffer, _overlayColors.Count * Vector4.SizeInBytes, _overlayColors.ToArray(),
+                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[5]);
+                GL.BufferData(BufferTarget.ArrayBuffer, OverlayColors.Count * Vector4.SizeInBytes, OverlayColors.ToArray(),
                     BufferUsageHint.StaticDraw);
             }
 
+            UploadedCount = _faceInfos.Count*6;
             _uploadedFaces = _faceInfos.ToArray();
 
-            UploadedCount = _indices.Count;
+            var indices = new List<uint>();
+            foreach (var face in _uploadedFaces)
+                indices.AddRange(face.Indices);
+            
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, IndicesId);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, UploadedCount * sizeof(uint), indices.ToArray(), BufferUsageHint.DynamicDraw);
         }
 
         public override void Clear()
@@ -131,21 +133,17 @@ namespace MinecraftClone3API.Graphics
             _faceInfos = null;
         }
 
-        public override void Draw(BeginMode mode)
+        public override void Sort()
         {
-            if (UploadedCount <= 0) return;
-
             Array.Sort(_uploadedFaces);
 
             var sortedIndices = new List<uint>();
             foreach (var face in _uploadedFaces)
                 sortedIndices.AddRange(face.Indices);
 
-            GL.BindVertexArray(_vaoId);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indicesId);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, sortedIndices.Count * sizeof(uint), sortedIndices.ToArray(), BufferUsageHint.DynamicDraw);
-
-            GL.DrawElements(mode, UploadedCount, DrawElementsType.UnsignedInt, 0);
+            GL.BindVertexArray(VaoId);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, IndicesId);
+            GL.BufferSubData(BufferTarget.ElementArrayBuffer, IntPtr.Zero, (IntPtr)(sortedIndices.Count * sizeof(uint)), sortedIndices.ToArray());
         }
     }
 }

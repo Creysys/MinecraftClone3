@@ -45,10 +45,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BlockBasic.cs" />
-    <Compile Include="BlockGlass.cs" />
-    <Compile Include="BlockGrass.cs" />
-    <Compile Include="BlockTorch.cs" />
+    <Compile Include="BlockDatas\BlockDataMetadata.cs" />
+    <Compile Include="Blocks\BlockBasic.cs" />
+    <Compile Include="Blocks\BlockGlass.cs" />
+    <Compile Include="Blocks\BlockGrass.cs" />
+    <Compile Include="Blocks\BlockTintedGlass.cs" />
+    <Compile Include="Blocks\BlockTorch.cs" />
     <Compile Include="VanillaPlugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

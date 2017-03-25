@@ -45,9 +45,10 @@ namespace MinecraftClone3API.Entities
             if (Math.Abs(a.LengthSquared) > 0.0001f)
                 PlayerEntity.Move(a.Normalized() * 0.08f);
 
-            if (ks.IsKeyDown(Key.Number1)) _currentBlock = "Vanilla:Torch";
-            if (ks.IsKeyDown(Key.Number2)) _currentBlock = "Vanilla:Dirt";
-            if (ks.IsKeyDown(Key.Number3)) _currentBlock = "Vanilla:Glass";
+            foreach (var keybinding in ClientResources.Keybindings)
+            {
+                if (ks.IsKeyDown(keybinding.Key)) _currentBlock = keybinding.Value;
+            }
 
             var ms = Mouse.GetState();
             if (_oldMouseState != null)
@@ -76,7 +77,7 @@ namespace MinecraftClone3API.Entities
         private static void PlaceBlock(World world)
         {
             if (_blockRaytrace == null) return;
-            world.SetBlock(_blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock(_currentBlock));
+            world.PlaceBlock(PlayerEntity, _blockRaytrace.BlockPos + _blockRaytrace.Face.GetNormali(), GameRegistry.GetBlock(_currentBlock));
 
             Logger.Debug(PlayerEntity.Position + ":" + _blockRaytrace.BlockPos);
         }

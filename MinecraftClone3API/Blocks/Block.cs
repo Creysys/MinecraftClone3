@@ -1,10 +1,24 @@
-﻿using MinecraftClone3API.Graphics;
+﻿using MinecraftClone3API.Entities;
+using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;
 
 namespace MinecraftClone3API.Blocks
 {
+    public enum TransparencyType
+    {
+        None,
+        Cutoff,
+        Transparent
+    }
+    public enum ConnectionType
+    {
+        Undefined,
+        Connected,
+        Disconnected
+    }
+
     public class Block : RegistryEntry
     {
         public static readonly AxisAlignedBoundingBox DefaultAlignedBoundingBox =
@@ -20,7 +34,8 @@ namespace MinecraftClone3API.Blocks
 
         public virtual bool IsVisible(World world, Vector3i blockPos) => true;
         public virtual bool IsFullBlock(World world, Vector3i blockPos) => true;
-        public virtual bool IsTransparent(World world, Vector3i blockPos) => false;
+        public virtual TransparencyType IsTransparent(World world, Vector3i blockPos) => TransparencyType.None;
+        public virtual ConnectionType ConnectsToBlock(World world, Vector3i blockPos, Vector3i otherBlockPos, Block otherBlock) => ConnectionType.Undefined;
         public virtual bool CanPassThrough(World world, Vector3i blockPos) => false;
         public virtual bool CanTarget(World world, Vector3i vector3I) => true;
 
@@ -37,5 +52,8 @@ namespace MinecraftClone3API.Blocks
         public virtual Color4 GetOverlayColor(World world, Vector3i blockPos, BlockFace face) => Color4.White;
         public virtual LightLevel GetLightLevel(World world, Vector3i blockPos) => LightLevel.Zero;
 
+        public virtual void OnPlaced(World world, Vector3i blockPos, EntityPlayer player)
+        {
+        }
     }
 }
