@@ -35,12 +35,16 @@ namespace MinecraftClone3API.Blocks
         public virtual bool IsVisible(World world, Vector3i blockPos) => true;
         public virtual bool IsFullBlock(World world, Vector3i blockPos) => true;
         public virtual TransparencyType IsTransparent(World world, Vector3i blockPos) => TransparencyType.None;
-        public virtual ConnectionType ConnectsToBlock(World world, Vector3i blockPos, Vector3i otherBlockPos, Block otherBlock) => ConnectionType.Undefined;
+
+        public virtual ConnectionType ConnectsToBlock(World world, Vector3i blockPos, Vector3i otherBlockPos,
+            Block otherBlock) => ConnectionType.Undefined;
+
         public virtual bool CanPassThrough(World world, Vector3i blockPos) => false;
         public virtual bool CanTarget(World world, Vector3i vector3I) => true;
 
         public virtual AxisAlignedBoundingBox GetBoundingBox(World world, Vector3i blockPos)
             => DefaultAlignedBoundingBox;
+
         public virtual Matrix4 GetTransform(World world, Vector3i blockPos, BlockFace face) => Matrix4.Identity;
         public virtual Vector2[] GetTexCoords(World world, Vector3i blockPos, BlockFace face) => null;
         public virtual Vector2[] GetOverlayTexCoords(World world, Vector3i blockPos, BlockFace face) => null;
@@ -55,5 +59,12 @@ namespace MinecraftClone3API.Blocks
         public virtual void OnPlaced(World world, Vector3i blockPos, EntityPlayer player)
         {
         }
+
+        public virtual int OnLightPassThrough(World world, Vector3i blockPos, int lightLevel, int color)
+            => lightLevel - 1;
+
+        public bool IsOpaqueFullBlock(World world, Vector3i blockPos) =>
+            IsVisible(world, blockPos) && IsFullBlock(world, blockPos) &&
+            IsTransparent(world, blockPos) == TransparencyType.None;
     }
 }

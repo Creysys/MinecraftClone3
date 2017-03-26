@@ -226,13 +226,8 @@ namespace MinecraftClone3API.Blocks
 
         public bool IsBlockInEmptyChunk(Vector3i blockPos) => !LoadedChunks.ContainsKey(ChunkInWorld(blockPos));
 
-        public bool IsOpaqueFullBlock(Vector3i blockPos)
-        {
-            var block = GetBlock(blockPos);
-
-            return block.IsVisible(this, blockPos) && block.IsFullBlock(this, blockPos) &&
-                   block.IsTransparent(this, blockPos) == TransparencyType.None;
-        }
+        public bool IsOpaqueFullBlock(Vector3i blockPos) => GetBlock(blockPos).IsOpaqueFullBlock(this, blockPos);
+        public bool IsFullBlock(Vector3i blockPos) => GetBlock(blockPos).IsFullBlock(this, blockPos);
 
         public BlockRaytraceResult BlockRaytrace(Vector3 position, Vector3 direction, float range)
         {
@@ -569,6 +564,19 @@ namespace MinecraftClone3API.Blocks
             }
         }
 
+
+        private struct LightNode
+        {
+            public readonly Vector3i Position;
+            public readonly int Value;
+
+            public LightNode(Vector3i position, int value)
+            {
+                Position = position;
+                Value = value;
+            }
+        }
+
         private void UpdateLightValues(Vector3i blockPos)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -588,27 +596,33 @@ namespace MinecraftClone3API.Blocks
                     for (var color = 0; color < 3; color++)
                     {
                         blockEmittingLightLevel[color] = Math.Max(blockEmittingLightLevel[color],
-                            neighborLightLevel[color] - 1);
+                            neighborLightLevel[color]);
                     }
                 }
+
+                for (var color = 0; color < 3; color++)
+                    blockEmittingLightLevel[color] = block.OnLightPassThrough(this, blockPos,
+                        blockEmittingLightLevel[color], color);
             }
 
             var cachedLightLevels = new Dictionary<Vector3i, LightLevel>();
             cachedLightLevels[blockPos] = blockEmittingLightLevel;
 
+            var cachedBlocks = new Dictionary<Vector3i, Block>();
+
             //foreach color channel
             for (var color = 0; color < 3; color++)
             {
-                var spreadQueue = new Queue<Tuple<Vector3i, int>>();
-                var removeQueue = new Queue<Tuple<Vector3i, int>>();
+                var spreadQueue = new Queue<LightNode>(1024);
+                var removeQueue = new Queue<LightNode>(1024);
 
                 if (blockEmittingLightLevel[color] > oldBlockLightLevel[color])
                 {
-                    spreadQueue.Enqueue(new Tuple<Vector3i, int>(blockPos, blockEmittingLightLevel[color]));
+                    spreadQueue.Enqueue(new LightNode(blockPos, blockEmittingLightLevel[color]));
                 }
                 else if (blockEmittingLightLevel[color] < oldBlockLightLevel[color])
                 {
-                    removeQueue.Enqueue(new Tuple<Vector3i, int>(blockPos, oldBlockLightLevel[color]));
+                    removeQueue.Enqueue(new LightNode(blockPos, oldBlockLightLevel[color]));
                 }
 
                 while (removeQueue.Count > 0)
@@ -617,7 +631,7 @@ namespace MinecraftClone3API.Blocks
 
                     foreach (var face in BlockFaceHelper.Faces)
                     {
-                        var nextNode = node.Item1 + face.GetNormali();
+                        var nextNode = node.Position + face.GetNormali();
 
                         //If chunk does not exist stop
                         if (IsBlockInEmptyChunk(nextNode)) continue;
@@ -630,9 +644,9 @@ namespace MinecraftClone3API.Blocks
                         }
 
                         //If the next nodes light level is higher or equal to our value spread light to fill the holes
-                        if (nextNodeLightLevel[color] >= node.Item2)
+                        if (nextNodeLightLevel[color] >= node.Value)
                         {
-                            spreadQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                            spreadQueue.Enqueue(new LightNode(nextNode, node.Value));
                             continue;
                         }
                         //If the next nodes light level is zero stop
@@ -645,8 +659,8 @@ namespace MinecraftClone3API.Blocks
                         nextNodeLightLevel[color] = 0;
                         cachedLightLevels[nextNode] = nextNodeLightLevel;
 
-                        if (node.Item2 - 1 > 0)
-                            removeQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                        if (node.Value - 1 > 0)
+                            removeQueue.Enqueue(new LightNode(nextNode, node.Value - 1));
                     }
                 }
 
@@ -656,7 +670,7 @@ namespace MinecraftClone3API.Blocks
 
                     foreach (var face in BlockFaceHelper.Faces)
                     {
-                        var nextNode = node.Item1 + face.GetNormali();
+                        var nextNode = node.Position + face.GetNormali();
                         
                         //If chunk does not exist stop
                         //TODO: Fix potential bugs
@@ -669,18 +683,27 @@ namespace MinecraftClone3API.Blocks
                             cachedLightLevels[nextNode] = nextNodeLightLevel;
                         }
 
+                        //Cache block if not already cached
+                        if (!cachedBlocks.TryGetValue(nextNode, out var nextNodeBlock))
+                        {
+                            nextNodeBlock = GetBlock(nextNode);
+                            cachedBlocks[nextNode] = nextNodeBlock;
+                        }
+
+                        var newValue = nextNodeBlock.OnLightPassThrough(this, nextNode, node.Value, color);
+
                         //If the next nodes light level is higher or equal to our value stop
-                        if (nextNodeLightLevel[color] >= node.Item2 - 1) continue;
+                        if (nextNodeLightLevel[color] >= newValue) continue;
 
                         //If next node block is an occluder stop
-                        if (IsOpaqueFullBlock(nextNode)) continue;
+                        if (nextNodeBlock.IsOpaqueFullBlock(this, nextNode)) continue;
 
                         //Set next nodes light level and advance
-                        nextNodeLightLevel[color] = node.Item2 - 1;
+                        nextNodeLightLevel[color] = newValue;
                         cachedLightLevels[nextNode] = nextNodeLightLevel;
 
-                        if(node.Item2 - 1 > 0)
-                            spreadQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                        if(newValue > 0)
+                            spreadQueue.Enqueue(new LightNode(nextNode, newValue));
                     }
                 }
             }

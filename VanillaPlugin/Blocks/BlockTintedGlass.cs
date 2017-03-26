@@ -19,6 +19,14 @@ namespace VanillaPlugin.Blocks
             "Vanilla/Textures/Blocks/glass_magenta.png"
         };
 
+        private static readonly int[,] LightFilters =
+        {
+            {4, 4, 4},
+            {10, 10, 1 },
+            {10, 1, 10 },
+            {1, 10, 10 }
+        };
+
         private static BlockTexture[] _textures;
 
         public BlockTintedGlass() : base("TintedGlass")
@@ -53,6 +61,13 @@ namespace VanillaPlugin.Blocks
             }
 
             world.SetBlockData(blockPos, new BlockDataMetadata(m));
+        }
+
+        public override int OnLightPassThrough(World world, Vector3i blockPos, int lightLevel, int color)
+        {
+            var data = world.GetBlockData(blockPos) as BlockDataMetadata;
+            var i = data?.Metadata ?? 0;
+            return lightLevel - LightFilters[i, color];
         }
     }
 }

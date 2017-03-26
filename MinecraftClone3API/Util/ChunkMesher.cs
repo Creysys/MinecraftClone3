@@ -163,37 +163,43 @@ namespace MinecraftClone3API.Util
             var normal = face.GetNormali();
             var pos = blockPos + normal;
             var offset = (vertexPosition * 2).ToVector3i();
-            
-            var lightValue = Vector3.Zero;
 
             if (normal.X != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
-                if(!world.IsOpaqueFullBlock(pos + new Vector3i(0, offset.Y, 0)) ||
-                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, 0, offset.Z)))
-                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)).Vector3);
+                return GetSmoothLightValue(world, pos, pos + new Vector3i(0, offset.Y, 0),
+                    pos + new Vector3i(0, 0, offset.Z), pos + new Vector3i(0, offset.Y, offset.Z));
             }
-            else if (normal.Y != 0)
+            if (normal.Y != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
-                if (!world.IsOpaqueFullBlock(pos + new Vector3i(offset.X, 0, 0)) ||
-                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, 0, offset.Z)))
-                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)).Vector3);
+                return GetSmoothLightValue(world, pos, pos + new Vector3i(offset.X, 0, 0),
+                    pos + new Vector3i(0, 0, offset.Z), pos + new Vector3i(offset.X, 0, offset.Z));
             }
-            else if (normal.Z != 0)
+            if (normal.Z != 0)
             {
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
-                if (!world.IsOpaqueFullBlock(pos + new Vector3i(offset.X, 0, 0)) ||
-                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, offset.Y, 0)))
-                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)).Vector3);
+                return GetSmoothLightValue(world, pos, pos + new Vector3i(offset.X, 0, 0),
+                    pos + new Vector3i(0, offset.Y, 0), pos + new Vector3i(offset.X, offset.Y, 0));
             }
 
+            throw new Exception("It's really bad if you can read this :S");
+        }
+
+        private static Vector3 GetSmoothLightValue(World world, Vector3i p0, Vector3i p1, Vector3i p2, Vector3i p3)
+        {
+            var lightValue = Vector3.Zero;
+
+            lightValue += LightLevelToBrightness(world.GetBlockLightLevel(p0).Vector3);
+
+            var l0 = LightLevelToBrightness(world.GetBlockLightLevel(p1).Vector3);
+            var l1 = LightLevelToBrightness(world.GetBlockLightLevel(p2).Vector3);
+
+            lightValue += l0;
+            lightValue += l1;
+
+            //If two full blocks obstruct the corner ignore the it
+            if (world.IsFullBlock(p1) && world.IsFullBlock(p2))
+                return lightValue / 3;
+            
+            lightValue += LightLevelToBrightness(world.GetBlockLightLevel(p3).Vector3);
             return lightValue / 4;
         }
 
