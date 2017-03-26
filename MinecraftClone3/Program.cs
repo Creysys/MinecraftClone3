@@ -28,7 +28,7 @@ namespace MinecraftClone3
             {
                 CursorVisible = false,
                 TargetUpdateFrequency = 120,
-                VSync = VSyncMode.Off
+                VSync = VSyncMode.On
             };
             Window.Closed += WindowOnClosed;
             Window.Resize += WindowOnResize;

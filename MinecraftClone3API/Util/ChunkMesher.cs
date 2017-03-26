@@ -171,21 +171,27 @@ namespace MinecraftClone3API.Util
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)).Vector3);
+                if(!world.IsOpaqueFullBlock(pos + new Vector3i(0, offset.Y, 0)) ||
+                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, 0, offset.Z)))
+                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, offset.Z)).Vector3);
             }
             else if (normal.Y != 0)
             {
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, 0, offset.Z)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)).Vector3);
+                if (!world.IsOpaqueFullBlock(pos + new Vector3i(offset.X, 0, 0)) ||
+                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, 0, offset.Z)))
+                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, offset.Z)).Vector3);
             }
             else if (normal.Z != 0)
             {
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, 0, 0)).Vector3);
                 lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(0, offset.Y, 0)).Vector3);
-                lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)).Vector3);
+                if (!world.IsOpaqueFullBlock(pos + new Vector3i(offset.X, 0, 0)) ||
+                    !world.IsOpaqueFullBlock(pos + new Vector3i(0, offset.Y, 0)))
+                    lightValue += LightLevelToBrightness(world.GetBlockLightLevel(pos + new Vector3i(offset.X, offset.Y, 0)).Vector3);
             }
 
             return lightValue / 4;
@@ -209,9 +215,9 @@ namespace MinecraftClone3API.Util
 
         private static float CustomLightLevelToBrightness(float lightLevel)
         {
-            //if(lightLevel < 15) return VanillaLightLevelToBrightness(lightLevel);
+            return VanillaLightLevelToBrightness(lightLevel);
 
-            return (float)Math.Pow(CustomBase, Math.Max(31 - lightLevel, 0));
+            //return (float)Math.Pow(CustomBase, Math.Max(31 - lightLevel, 0));
             //return (float)Math.Pow(0.8, 1 - (lightLevel - 14) / 17);
         }
     }

@@ -57,6 +57,7 @@ namespace MinecraftClone3API.Blocks
             NeedsSaving = true;
 
             _blockIds[blockPos.X, blockPos.Y, blockPos.Z] = id;
+            _blockDatas.Remove(blockPos);
 
             if (blockPos.X < _min.X) _min.X = blockPos.X;
             if (blockPos.Y < _min.Y) _min.Y = blockPos.Y;
@@ -89,6 +90,13 @@ namespace MinecraftClone3API.Blocks
         {
             NeedsSaving = true;
             _lightLevels[blockPos.X, blockPos.Y, blockPos.Z] = lightLevel;
+
+            if (blockPos.X < _min.X) _min.X = blockPos.X;
+            if (blockPos.Y < _min.Y) _min.Y = blockPos.Y;
+            if (blockPos.Z < _min.Z) _min.Z = blockPos.Z;
+            if (blockPos.X > _max.X) _max.X = blockPos.X;
+            if (blockPos.Y > _max.Y) _max.Y = blockPos.Y;
+            if (blockPos.Z > _max.Z) _max.Z = blockPos.Z;
         }
         
         public LightLevel GetLightLevel(Vector3i blockPos) => _lightLevels[blockPos.X, blockPos.Y, blockPos.Z];

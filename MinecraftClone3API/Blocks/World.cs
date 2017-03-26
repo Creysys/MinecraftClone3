@@ -156,6 +156,7 @@ namespace MinecraftClone3API.Blocks
 
         public void SetBlockLightLevel(Vector3i blockPos, LightLevel lightLevel)
             => SetBlockLightLevel(blockPos.X, blockPos.Y, blockPos.Z, lightLevel);
+
         public void SetBlockLightLevel(int x, int y, int z, LightLevel lightLevel)
         {
             var chunkInWorld = ChunkInWorld(x, y, z);
@@ -163,6 +164,19 @@ namespace MinecraftClone3API.Blocks
 
             if (!LoadedChunks.TryGetValue(chunkInWorld, out var chunk)) return;
             chunk.SetLightLevel(blockInChunk, lightLevel);
+
+            if (blockInChunk.X == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(-1, 0, 0), false);
+            else if (blockInChunk.X == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(+1, 0, 0), false);
+            if (blockInChunk.Y == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, -1, 0), false);
+            else if (blockInChunk.Y == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, +1, 0), false);
+            if (blockInChunk.Z == 0)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, -1), false);
+            else if (blockInChunk.Z == Chunk.Size - 1)
+                QueueChunkUpdate(chunkInWorld + new Vector3i(0, 0, +1), false);
             QueueChunkUpdate(chunk, false);
         }
 
@@ -210,6 +224,15 @@ namespace MinecraftClone3API.Blocks
             }
         }
 
+        public bool IsBlockInEmptyChunk(Vector3i blockPos) => !LoadedChunks.ContainsKey(ChunkInWorld(blockPos));
+
+        public bool IsOpaqueFullBlock(Vector3i blockPos)
+        {
+            var block = GetBlock(blockPos);
+
+            return block.IsVisible(this, blockPos) && block.IsFullBlock(this, blockPos) &&
+                   block.IsTransparent(this, blockPos) == TransparencyType.None;
+        }
 
         public BlockRaytraceResult BlockRaytrace(Vector3 position, Vector3 direction, float range)
         {
@@ -399,7 +422,7 @@ namespace MinecraftClone3API.Blocks
                     if (!_chunksReadyToUploadLp.Contains(chunk)) _chunksReadyToUploadLp.Enqueue(chunk);
                 }
 
-                Thread.Sleep(0);
+                Thread.Sleep(1);
             }
         }
 
@@ -542,84 +565,133 @@ namespace MinecraftClone3API.Blocks
                     }
                 }
 
-                Thread.Sleep(1);
+                Thread.Sleep(10);
             }
         }
 
         private void UpdateLightValues(Vector3i blockPos)
         {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+            var stopwatch = Stopwatch.StartNew();
 
             var block = GetBlock(blockPos);
-            if (block.IsVisible(this, blockPos) && block.IsFullBlock(this, blockPos) &&
-                block.IsTransparent(this, blockPos) == TransparencyType.None)
+            var blockEmittingLightLevel = block.GetLightLevel(this, blockPos);
+            var oldBlockLightLevel = GetBlockLightLevel(blockPos);
+            var occludingBlock = IsOpaqueFullBlock(blockPos);
+
+
+            //If the block is not occluding its faces it can accept lighting from nearby blocks
+            if (!occludingBlock)
             {
-                var oldLightLevel = GetBlockLightLevel(blockPos);
-                SetBlockLightLevel(blockPos, LightLevel.Zero);
-
-                for (var color = 0; color < 3; color++)
-                    OccludeLight(blockPos, oldLightLevel[color], color);
-
-                return;
+                foreach (var face in BlockFaceHelper.Faces)
+                {
+                    var neighborLightLevel = GetBlockLightLevel(blockPos + face.GetNormali());
+                    for (var color = 0; color < 3; color++)
+                    {
+                        blockEmittingLightLevel[color] = Math.Max(blockEmittingLightLevel[color],
+                            neighborLightLevel[color] - 1);
+                    }
+                }
             }
 
-            var blockLightLevel = block.GetLightLevel(this, blockPos);
+            var cachedLightLevels = new Dictionary<Vector3i, LightLevel>();
+            cachedLightLevels[blockPos] = blockEmittingLightLevel;
 
             //foreach color channel
             for (var color = 0; color < 3; color++)
             {
-                //get max neighbour light level - 1
-                var maxNeighbourLightLevel = BlockFaceHelper.Faces.Aggregate(0,
-                                                 (current, face) =>
-                                                     Math.Max(current,
-                                                         GetBlockLightLevelColor(blockPos + face.GetNormali(), color))) - 1;
+                var spreadQueue = new Queue<Tuple<Vector3i, int>>();
+                var removeQueue = new Queue<Tuple<Vector3i, int>>();
 
-                var blockEmittingLightLevel = Math.Max(maxNeighbourLightLevel, blockLightLevel[color]);
-                SetBlockLightLevelColor(blockPos, blockEmittingLightLevel, color);
-                
-                SpreadLightIterative(blockPos, blockEmittingLightLevel, color);
+                if (blockEmittingLightLevel[color] > oldBlockLightLevel[color])
+                {
+                    spreadQueue.Enqueue(new Tuple<Vector3i, int>(blockPos, blockEmittingLightLevel[color]));
+                }
+                else if (blockEmittingLightLevel[color] < oldBlockLightLevel[color])
+                {
+                    removeQueue.Enqueue(new Tuple<Vector3i, int>(blockPos, oldBlockLightLevel[color]));
+                }
+
+                while (removeQueue.Count > 0)
+                {
+                    var node = removeQueue.Dequeue();
+
+                    foreach (var face in BlockFaceHelper.Faces)
+                    {
+                        var nextNode = node.Item1 + face.GetNormali();
+
+                        //If chunk does not exist stop
+                        if (IsBlockInEmptyChunk(nextNode)) continue;
+
+                        //Cache light level if not already cached
+                        if (!cachedLightLevels.TryGetValue(nextNode, out var nextNodeLightLevel))
+                        {
+                            nextNodeLightLevel = GetBlockLightLevel(nextNode);
+                            cachedLightLevels[nextNode] = nextNodeLightLevel;
+                        }
+
+                        //If the next nodes light level is higher or equal to our value spread light to fill the holes
+                        if (nextNodeLightLevel[color] >= node.Item2)
+                        {
+                            spreadQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                            continue;
+                        }
+                        //If the next nodes light level is zero stop
+                        if (nextNodeLightLevel[color] == 0) continue;
+
+                        //If next node block is an occluder stop
+                        if (IsOpaqueFullBlock(nextNode)) continue;
+
+                        //Set next nodes light level and advance
+                        nextNodeLightLevel[color] = 0;
+                        cachedLightLevels[nextNode] = nextNodeLightLevel;
+
+                        if (node.Item2 - 1 > 0)
+                            removeQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                    }
+                }
+
+                while (spreadQueue.Count > 0)
+                {
+                    var node = spreadQueue.Dequeue();
+
+                    foreach (var face in BlockFaceHelper.Faces)
+                    {
+                        var nextNode = node.Item1 + face.GetNormali();
+                        
+                        //If chunk does not exist stop
+                        //TODO: Fix potential bugs
+                        if (IsBlockInEmptyChunk(nextNode)) continue;
+                        
+                        //Cache light level if not already cached
+                        if (!cachedLightLevels.TryGetValue(nextNode, out var nextNodeLightLevel))
+                        {
+                            nextNodeLightLevel = GetBlockLightLevel(nextNode);
+                            cachedLightLevels[nextNode] = nextNodeLightLevel;
+                        }
+
+                        //If the next nodes light level is higher or equal to our value stop
+                        if (nextNodeLightLevel[color] >= node.Item2 - 1) continue;
+
+                        //If next node block is an occluder stop
+                        if (IsOpaqueFullBlock(nextNode)) continue;
+
+                        //Set next nodes light level and advance
+                        nextNodeLightLevel[color] = node.Item2 - 1;
+                        cachedLightLevels[nextNode] = nextNodeLightLevel;
+
+                        if(node.Item2 - 1 > 0)
+                            spreadQueue.Enqueue(new Tuple<Vector3i, int>(nextNode, node.Item2 - 1));
+                    }
+                }
+            }
+
+            foreach (var cachedLightLevel in cachedLightLevels)
+            {
+                SetBlockLightLevel(cachedLightLevel.Key, cachedLightLevel.Value);
             }
 
             stopwatch.Stop();
             Console.WriteLine($"Light update took: {stopwatch.ElapsedMilliseconds} ms");
-        }
-
-        private void SpreadLightIterative(Vector3i blockPos, int maxLight, int color)
-        {
-            var tmp = new Dictionary<Vector3i, int>();
-            var spread = new Dictionary<Vector3i, int> {{blockPos, maxLight } };
-            var done = new HashSet<Vector3i> {blockPos};
-
-            while (spread.Count > 0)
-            {
-                foreach (var entry in spread)
-                foreach (var face in BlockFaceHelper.Faces)
-                {
-                    var neighbourPos = entry.Key + face.GetNormali();
-                    if (done.Contains(neighbourPos)) continue;
-
-                    var block = GetBlock(neighbourPos);
-                    if (block.IsVisible(this, neighbourPos) && block.IsFullBlock(this, neighbourPos) &&
-                        block.IsTransparent(this, neighbourPos) == TransparencyType.None) continue;
-
-                    if (GetBlockLightLevelColor(neighbourPos, color) >= entry.Value - 1) continue;
-
-                    SetBlockLightLevelColor(neighbourPos, entry.Value - 1, color);
-                    tmp.Add(neighbourPos, entry.Value - 1);
-                    done.Add(neighbourPos);
-                }
-
-                spread.Clear();
-                foreach (var entry in tmp)
-                    spread.Add(entry.Key, entry.Value);
-                tmp.Clear();
-            }
-        }
-
-        private void OccludeLight(Vector3i blockPos, int oldLightLevel, int color)
-        {
-            
         }
 
         private CachedChunk LoadChunk(Vector3i position)

@@ -49,10 +49,10 @@ namespace VanillaPlugin.Blocks
 
         public override LightLevel GetLightLevel(World world, Vector3i blockPos)
         {
-            var l = new LightLevel(31, 27, 27);
+            var l = new LightLevel(15, 11, 11);
             var ks = Keyboard.GetState();
-            if (ks.IsKeyDown(Key.G)) l = new LightLevel(27, 31, 27);
-            if (ks.IsKeyDown(Key.B)) l = new LightLevel(27, 27, 31);
+            if (ks.IsKeyDown(Key.G)) l = new LightLevel(11, 15, 11);
+            if (ks.IsKeyDown(Key.B)) l = new LightLevel(11, 11, 15);
             return l;
         }
     }
