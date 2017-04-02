@@ -25,7 +25,7 @@ namespace MinecraftClone3API.Blocks
 
         private readonly ushort[,,] _blockIds = new ushort[Size, Size, Size];
         private readonly LightLevel[,,] _lightLevels = new LightLevel[Size, Size, Size];
-        private readonly Dictionary<Vector3i, BlockData> _blockDatas = new Dictionary<Vector3i, BlockData>();
+        private readonly Dictionary<Vector3iChunk, BlockData> _blockDatas = new Dictionary<Vector3iChunk, BlockData>();
 
         private Vector3i _min = new Vector3i(Size);
         private Vector3i _max = new Vector3i(-1);
@@ -46,6 +46,7 @@ namespace MinecraftClone3API.Blocks
         {
             _blockIds = cachedChunk.BlockIds;
             _lightLevels = cachedChunk.LightLevels;
+            _blockDatas = cachedChunk.BlockDatas;
             _min = cachedChunk.Min;
             _max = cachedChunk.Max;
         }
@@ -160,10 +161,8 @@ namespace MinecraftClone3API.Blocks
             writer.Write(_blockDatas.Count);
             foreach (var data in _blockDatas)
             {
-                writer.Write(data.Key.X);
-                writer.Write(data.Key.Y);
-                writer.Write(data.Key.Z);
-                //writer.Write(GameRegistry.);
+                writer.Write(data.Key.Binary);
+                BlockData.WriteToStream(data.Value, writer);
             }
         }
 

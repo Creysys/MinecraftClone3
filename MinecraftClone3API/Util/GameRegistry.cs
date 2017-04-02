@@ -16,6 +16,12 @@ namespace MinecraftClone3API.Util
         public static Block GetBlock(ushort id) => BlockRegistry[id];
         public static Block GetBlock(string key) => BlockRegistry[key];
 
+        internal static string GetBlockDataRegistryKey(BlockData data)
+        {
+            var entry = new BlockDataRegistryEntry(data.GetType());
+            return BlockDataRegistry[entry];
+        }
+
         public static void Save(DirectoryInfo saveDir)
         {
             var file = new FileInfo(Path.Combine(saveDir.FullName, RegistryFilename));

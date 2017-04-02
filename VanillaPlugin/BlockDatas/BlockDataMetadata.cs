@@ -7,6 +7,10 @@ namespace VanillaPlugin.BlockDatas
     {
         public int Metadata;
 
+        public BlockDataMetadata()
+        {
+        }
+
         public BlockDataMetadata(int metadata)
         {
             Metadata = metadata;

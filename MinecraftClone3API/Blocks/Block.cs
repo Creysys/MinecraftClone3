@@ -1,5 +1,6 @@
 ﻿using MinecraftClone3API.Entities;
 using MinecraftClone3API.Graphics;
+using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;
@@ -25,6 +26,7 @@ namespace MinecraftClone3API.Blocks
             new AxisAlignedBoundingBox(new Vector3(-0.5f), new Vector3(0.5f));
 
         public BlockTexture Texture;
+        public BlockModel Model;
 
         public Block(string name) : base(name)
         {

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using MinecraftClone3API.Util;
 
 namespace MinecraftClone3API.Blocks
@@ -9,6 +10,7 @@ namespace MinecraftClone3API.Blocks
         public readonly Vector3i Position;
         public readonly ushort[,,] BlockIds = new ushort[Chunk.Size, Chunk.Size, Chunk.Size];
         public readonly LightLevel[,,] LightLevels = new LightLevel[Chunk.Size, Chunk.Size, Chunk.Size];
+        public readonly Dictionary<Vector3iChunk, BlockData> BlockDatas = new Dictionary<Vector3iChunk, BlockData>();
 
         public bool IsEmpty => Min.X == Chunk.Size;
 
@@ -32,6 +34,15 @@ namespace MinecraftClone3API.Blocks
             {
                 BlockIds[x, y, z] = reader.ReadUInt16();
                 LightLevels[x, y, z] = LightLevel.FromBinary(reader.ReadUInt16());
+            }
+            
+            var blockDataCount = reader.ReadInt32();
+            for (var i = 0; i < blockDataCount; i++)
+            {
+                var blockDataPos = Vector3iChunk.FromBinary(reader.ReadUInt16());
+                var blockData = BlockData.ReadFromStream(reader);
+
+                BlockDatas.Add(blockDataPos, blockData);
             }
         }
 

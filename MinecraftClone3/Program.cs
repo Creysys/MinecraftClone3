@@ -3,6 +3,7 @@ using System.IO;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
 using MinecraftClone3API.Graphics;
+using MinecraftClone3API.IO;
 using MinecraftClone3API.Plugins;
 using MinecraftClone3API.Util;
 using OpenTK;
@@ -46,6 +47,7 @@ namespace MinecraftClone3
             PlayerController.SetEntity(_playerEntity);
             PluginManager.LoadPlugins();
 
+            CommonResources.Load();
             ClientResources.Load(Window);
             BoundingBoxRenderer.Load();
 

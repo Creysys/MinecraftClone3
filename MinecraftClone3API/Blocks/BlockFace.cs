@@ -10,7 +10,15 @@ namespace MinecraftClone3API.Blocks
         Bottom,
         Top,
         Back,
-        Front
+        Front,
+
+        //Aliases for serialization
+        West = Left,
+        East = Right,
+        Down = Bottom,
+        Up = Top,
+        North = Back,
+        South = Front
     }
 
     public static class BlockFaceHelper

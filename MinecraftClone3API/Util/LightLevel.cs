@@ -12,21 +12,6 @@ namespace MinecraftClone3API.Util
         public static LightLevel Zero = new LightLevel();
 
         public static LightLevel FromBinary(ushort value) => new LightLevel(value);
-
-        private LightLevel(ushort value)
-        {
-            Binary = value;
-        }
-
-        public LightLevel(int red, int green, int blue)
-        {
-            Binary = 0;
-            Red = red;
-            Green = green;
-            Blue = blue;
-        }
-
-
         public ushort Binary { get; private set; }
 
         public int Red
@@ -63,6 +48,19 @@ namespace MinecraftClone3API.Util
                 else if (id == 2) Blue = value;
                 else throw new ArgumentOutOfRangeException();
             }
+        }
+
+        private LightLevel(ushort value)
+        {
+            Binary = value;
+        }
+
+        public LightLevel(int red, int green, int blue)
+        {
+            Binary = 0;
+            Red = red;
+            Green = green;
+            Blue = blue;
         }
 
         public Vector3 Vector3 => new Vector3(Red, Green, Blue);

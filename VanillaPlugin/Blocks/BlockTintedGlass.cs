@@ -40,7 +40,16 @@ namespace VanillaPlugin.Blocks
 
         public override TransparencyType IsTransparent(World world, Vector3i blockPos) => TransparencyType.Transparent;
         public override ConnectionType ConnectsToBlock(World world, Vector3i blockPos, Vector3i otherBlockPos,
-            Block otherBlock) => otherBlock == this ? ConnectionType.Connected : ConnectionType.Undefined;
+            Block otherBlock)
+        {
+            var data = world.GetBlockData(blockPos) as BlockDataMetadata;
+            var myMeta = data?.Metadata ?? 0;
+
+            data = world.GetBlockData(otherBlockPos) as BlockDataMetadata;
+            var otherMeta = data?.Metadata ?? 0;
+
+            return otherBlock == this && myMeta == otherMeta ? ConnectionType.Connected : ConnectionType.Undefined;
+        }
 
         public override BlockTexture GetTexture(World world, Vector3i blockPos, BlockFace face)
         {

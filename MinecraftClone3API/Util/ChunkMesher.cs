@@ -154,7 +154,7 @@ namespace MinecraftClone3API.Util
         private static Vector3 CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
         {
             //if its not a full opaque block return brightness of itself
-            if (!block.IsFullBlock(world, blockPos))
+            if (!block.IsOpaqueFullBlock(world, blockPos))
                 return LightLevelToBrightness(world.GetBlockLightLevel(blockPos).Vector3);
 
             //TODO: smooth lighting setting
@@ -203,9 +203,12 @@ namespace MinecraftClone3API.Util
             return lightValue / 4;
         }
 
+#if true
         private const float Base = 0.8f;
-        //private const float Base = 1f;
-        private const float CustomBase = 0.897499991f;
+#else
+        private const float Base = 1f;
+#endif
+        //private const float CustomBase = 0.897499991f;
 
         private static Vector3 LightLevelToBrightness(Vector3 lightLevel)
         {

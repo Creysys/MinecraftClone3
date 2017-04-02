@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,10 +11,13 @@ namespace MinecraftClone3API.IO
 {
     public static class ResourceReader
     {
+        private static Dictionary<string, BlockTexture> _cachedTextures = new Dictionary<string, BlockTexture>();
+        private static Dictionary<string, BlockModel> _cachedModels = new Dictionary<string, BlockModel>();
+
         public static byte[] ReadBytes(string path)
         {
             foreach (var pluginData in PluginManager.PluginDatas)
-                if (pluginData.Files.TryGetValue(path, out byte[] data))
+                if (pluginData.Files.TryGetValue(path, out var data))
                     return data;
 
             Logger.Error($"\"{path}\" could not be found!");
@@ -29,8 +33,21 @@ namespace MinecraftClone3API.IO
             => new TextureData((Bitmap) Image.FromStream(new MemoryStream(ReadBytes(path))));
 
         public static BlockTexture ReadBlockTexture(string path)
-            => BlockTextureManager.LoadTexture(ReadTextureData(path));
+        {
+            if(_cachedTextures.TryGetValue(path, out var tex)) return tex;
+            tex = BlockTextureManager.LoadTexture(ReadTextureData(path));
+            _cachedTextures.Add(path, tex);
+            return tex;
+        }
 
         public static Shader ReadShader(string path) => new Shader(path);
+
+        public static BlockModel ReadBlockModel(string path)
+        {
+            if (_cachedModels.TryGetValue(path, out var model)) return model;
+            model = BlockModel.Parse(ReadString(path), path);
+            _cachedModels.Add(path, model);
+            return model;
+        }
     }
 }
