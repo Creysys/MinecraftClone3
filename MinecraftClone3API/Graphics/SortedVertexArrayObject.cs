@@ -62,30 +62,24 @@ namespace MinecraftClone3API.Graphics
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(1);
                 GL.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, 0);
-                //2 overlayTexCoords
+                //2 normals
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[2]);
-                GL.BufferData(BufferTarget.ArrayBuffer, OverlayTexCoords.Count * Vector4.SizeInBytes, OverlayTexCoords.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector4.SizeInBytes, Normals.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(2);
                 GL.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, 0, 0);
-                //3 normals
+                //3 color
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[3]);
-                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector4.SizeInBytes, Normals.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector3.SizeInBytes, Colors.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(3);
-                GL.VertexAttribPointer(3, 4, VertexAttribPointerType.Float, false, 0, 0);
-                //4 colors
+                GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 0, 0);
+                //4 light
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[4]);
-                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector4.SizeInBytes, Colors.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Lights.Count * Vector3.SizeInBytes, Lights.ToArray(),
                     BufferUsageHint.StaticDraw);
                 GL.EnableVertexAttribArray(4);
-                GL.VertexAttribPointer(4, 4, VertexAttribPointerType.Float, false, 0, 0);
-                //5 overlayColors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[5]);
-                GL.BufferData(BufferTarget.ArrayBuffer, OverlayColors.Count * Vector4.SizeInBytes, OverlayColors.ToArray(),
-                    BufferUsageHint.StaticDraw);
-                GL.EnableVertexAttribArray(5);
-                GL.VertexAttribPointer(5, 4, VertexAttribPointerType.Float, false, 0, 0);
+                GL.VertexAttribPointer(4, 3, VertexAttribPointerType.Float, false, 0, 0);
             }
             else
             {
@@ -97,21 +91,17 @@ namespace MinecraftClone3API.Graphics
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[1]);
                 GL.BufferData(BufferTarget.ArrayBuffer, TexCoords.Count * Vector4.SizeInBytes, TexCoords.ToArray(),
                     BufferUsageHint.StaticDraw);
-                //2 overlayTexCoords
+                //2 normals
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[2]);
-                GL.BufferData(BufferTarget.ArrayBuffer, OverlayTexCoords.Count * Vector4.SizeInBytes, OverlayTexCoords.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector4.SizeInBytes, Normals.ToArray(),
                     BufferUsageHint.StaticDraw);
-                //3 normals
+                //3 color
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[3]);
-                GL.BufferData(BufferTarget.ArrayBuffer, Normals.Count * Vector3.SizeInBytes, Normals.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector3.SizeInBytes, Colors.ToArray(),
                     BufferUsageHint.StaticDraw);
-                //4 colors
+                //4 light
                 GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[4]);
-                GL.BufferData(BufferTarget.ArrayBuffer, Colors.Count * Vector4.SizeInBytes, Colors.ToArray(),
-                    BufferUsageHint.StaticDraw);
-                //5 overlayColors
-                GL.BindBuffer(BufferTarget.ArrayBuffer, BufferIds[5]);
-                GL.BufferData(BufferTarget.ArrayBuffer, OverlayColors.Count * Vector4.SizeInBytes, OverlayColors.ToArray(),
+                GL.BufferData(BufferTarget.ArrayBuffer, Lights.Count * Vector3.SizeInBytes, Lights.ToArray(),
                     BufferUsageHint.StaticDraw);
             }
 
@@ -141,6 +131,7 @@ namespace MinecraftClone3API.Graphics
             foreach (var face in _uploadedFaces)
                 sortedIndices.AddRange(face.Indices);
 
+            //TODO: Use streaming BufferSubData too slow
             GL.BindVertexArray(VaoId);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, IndicesId);
             GL.BufferSubData(BufferTarget.ElementArrayBuffer, IntPtr.Zero, (IntPtr)(sortedIndices.Count * sizeof(uint)), sortedIndices.ToArray());

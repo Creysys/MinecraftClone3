@@ -78,6 +78,7 @@ namespace MinecraftClone3API.Graphics
 
             GL.Enable(EnableCap.CullFace);
             GL.Enable(EnableCap.DepthTest);
+            GL.DepthFunc(DepthFunction.Lequal); //Grass fix
 
             ClientResources.GeometryFramebuffer.Bind();
             ClientResources.GeometryFramebuffer.Clear(Color4.DarkBlue);

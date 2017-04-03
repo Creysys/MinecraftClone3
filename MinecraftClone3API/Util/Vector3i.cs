@@ -14,6 +14,7 @@ namespace MinecraftClone3API.Util
             => new Vector3i(v0.X - v1.X, v0.Y - v1.Y, v0.Z - v1.Z);
 
         public static Vector3i operator *(Vector3i v, int i) => new Vector3i(v.X * i, v.Y * i, v.Z * i);
+        public static Vector3i operator *(Vector3i v1, Vector3i v2) => new Vector3i(v1.X * v2.X, v1.Y * v2.Y, v1.Z * v2.Z);
 
         public static bool operator ==(Vector3i v0, Vector3i v1) => v0.Equals(v1);
         public static bool operator !=(Vector3i v0, Vector3i v1) => !v0.Equals(v1);
@@ -24,6 +25,9 @@ namespace MinecraftClone3API.Util
         public int X { get; set; }
         public int Y { get; set; }
         public int Z { get; set; }
+
+        public int LengthSquared => X * X + Y * Y + Z * Z;
+        public float Length => (float)Math.Sqrt(LengthSquared);
 
         public Vector3i(int i) : this(i, i, i)
         {

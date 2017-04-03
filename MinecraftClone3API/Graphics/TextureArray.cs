@@ -1,5 +1,4 @@
 ﻿using OpenTK.Graphics.OpenGL4;
-using ExtTextureFilterAnisotropic = OpenTK.Graphics.OpenGL.ExtTextureFilterAnisotropic;
 
 namespace MinecraftClone3API.Graphics
 {

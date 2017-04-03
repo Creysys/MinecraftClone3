@@ -14,6 +14,12 @@ namespace MinecraftClone3API.IO
         private static Dictionary<string, BlockTexture> _cachedTextures = new Dictionary<string, BlockTexture>();
         private static Dictionary<string, BlockModel> _cachedModels = new Dictionary<string, BlockModel>();
 
+        internal static void ClearCache()
+        {
+            _cachedModels = null;
+            _cachedTextures = null;
+        }
+
         public static byte[] ReadBytes(string path)
         {
             foreach (var pluginData in PluginManager.PluginDatas)
@@ -44,6 +50,12 @@ namespace MinecraftClone3API.IO
 
         public static BlockModel ReadBlockModel(string path)
         {
+            if (!Exists(path))
+            {
+                Logger.Error($"Block model \"{path}\" could not be found!");
+                return ClientResources.MissingModel;
+            }
+
             if (_cachedModels.TryGetValue(path, out var model)) return model;
             model = BlockModel.Parse(ReadString(path), path);
             _cachedModels.Add(path, model);

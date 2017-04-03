@@ -1,13 +1,20 @@
 ﻿using MinecraftClone3API.Blocks;
 using MinecraftClone3API.IO;
+using MinecraftClone3API.Util;
 
 namespace VanillaPlugin.Blocks
 {
     public class BlockBasic : Block
     {
-        public BlockBasic(string name, string texturePath) : base(name)
+        private readonly bool _fullBlock;
+
+        public BlockBasic(string name, string modelPath, bool fullBlock) : base(name)
         {
-            Texture = ResourceReader.ReadBlockTexture(texturePath);
+            _fullBlock = fullBlock;
+
+            Model = ResourceReader.ReadBlockModel(modelPath);
         }
+
+        public override bool IsFullBlock(World world, Vector3i blockPos) => _fullBlock;
     }
 }

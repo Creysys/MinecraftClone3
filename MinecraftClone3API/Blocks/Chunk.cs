@@ -171,8 +171,9 @@ namespace MinecraftClone3API.Blocks
             for (var x = _min.X; x <= _max.X; x++)
             for (var y = _min.Y; y <= _max.Y; y++)
             for (var z = _min.Z; z <= _max.Z; z++)
-                ChunkMesher.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
-                    GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao, _transparentVao);
+                if (_blockIds[x, y, z] != 0) //Remove GetBlock overhead of Air
+                    ChunkMesher.AddBlockToVao(World, Position * Size + new Vector3i(x, y, z), x, y, z,
+                        GameRegistry.BlockRegistry[_blockIds[x, y, z]], _vao, _transparentVao);
         }
     }
 }

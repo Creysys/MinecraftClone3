@@ -5,6 +5,7 @@ namespace MinecraftClone3API.Blocks
 {
     public enum BlockFace
     {
+        None,
         Left,
         Right,
         Bottom,
@@ -42,7 +43,7 @@ namespace MinecraftClone3API.Blocks
         };
 
         public static Vector3 GetNormal(this BlockFace face) => face.GetNormali().ToVector3();
-        public static Vector3i GetNormali(this BlockFace face) => Normals[(int) face];
-        public static BlockFace GetOpposite(this BlockFace face) => Opposites[(int) face];
+        public static Vector3i GetNormali(this BlockFace face) => Normals[(int) face-1];
+        public static BlockFace GetOpposite(this BlockFace face) => Opposites[(int) face-1];
     }
 }

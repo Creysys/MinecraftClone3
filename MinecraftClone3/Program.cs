@@ -37,6 +37,8 @@ namespace MinecraftClone3
             Window.UpdateFrame += WindowOnUpdateFrame;
             Window.RenderFrame += WindowOnRenderFrame;
 
+            CommonResources.Load();
+
             //Load plugins in "Plugins" dir
             var pluginsDir = new DirectoryInfo("Plugins");
             foreach (var dir in pluginsDir.EnumerateDirectories())
@@ -44,11 +46,11 @@ namespace MinecraftClone3
             foreach (var file in pluginsDir.EnumerateFiles())
                 PluginManager.AddPlugin(file);
 
+            ClientResources.Load(Window);
+
             PlayerController.SetEntity(_playerEntity);
             PluginManager.LoadPlugins();
 
-            CommonResources.Load();
-            ClientResources.Load(Window);
             BoundingBoxRenderer.Load();
 
             BlockTextureManager.Upload();

@@ -8,6 +8,7 @@ namespace MinecraftClone3API.Graphics
     {
         private readonly int _diffuse;
         private readonly int _normal;
+        private readonly int _light;
         private readonly int _depth;
 
         public GeometryFramebuffer(int width, int height) : base(width, height)
@@ -24,9 +25,14 @@ namespace MinecraftClone3API.Graphics
             GL.TexStorage2D(TextureTarget2d.Texture2D, 1, SizedInternalFormat.Rgba8, width, height);
             GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, _normal, 0);
 
+            _light = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, _light);
+            GL.TexStorage2D(TextureTarget2d.Texture2D, 1, (SizedInternalFormat)32849, width, height); //GL_RGB8
+            GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment2, _light, 0);
+
             _depth = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, _depth);
-            GL.TexStorage2D(TextureTarget2d.Texture2D, 1, (SizedInternalFormat)33190, width, height);
+            GL.TexStorage2D(TextureTarget2d.Texture2D, 1, (SizedInternalFormat)33190, width, height); //GL_DEPTH_COMPONENT24
             GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, _depth, 0);
 
             GL.DrawBuffers(2, new []{DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1});

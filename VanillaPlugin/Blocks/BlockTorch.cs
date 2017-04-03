@@ -16,9 +16,6 @@ namespace VanillaPlugin.Blocks
         public override bool IsFullBlock(World world, Vector3i blockPos) => false;
         public override bool CanPassThrough(World world, Vector3i blockPos) => true;
 
-        public override AxisAlignedBoundingBox[] GetBoundingBoxes(World world, Vector3i blockPos)
-            => DefaultAlignedBoundingBox.Transform(Transform);
-
         public override LightLevel GetLightLevel(World world, Vector3i blockPos)
         {
             var l = new LightLevel(15, 11, 11);

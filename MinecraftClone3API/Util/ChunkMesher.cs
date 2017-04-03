@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Graphics;
 using OpenTK;
@@ -40,43 +41,54 @@ namespace MinecraftClone3API.Util
         public static void AddBlockToVao(World world, Vector3i blockPos, int x, int y, int z, Block block,
             VertexArrayObject vao, VertexArrayObject transparentVao)
         {
-            if (!block.IsVisible(world, blockPos)) return;
+            //If block is invisible or does not have a model for some reason ignore it
+            if (!block.IsVisible(world, blockPos) || block.Model == null) return;
 
-            foreach (var face in BlockFaceHelper.Faces)
+            foreach (var element in block.Model.Elements)
             {
-                var otherBlockPos = blockPos + face.GetNormali();
-                var otherBlock = world.GetBlock(otherBlockPos);
+                var transform = Matrix4.CreateScale((element.To - element.From) / 16) *
+                                Matrix4.CreateTranslation((element.To - element.From) / 32 + element.From / 16) *
+                                Matrix4.CreateTranslation(new Vector3(-0.5f));
 
-                var fullBlock = block.IsFullBlock(world, blockPos);
-                var transparency = block.IsTransparent(world, blockPos);
+                foreach (var entry in element.Faces)
+                {
+                    var noCull = entry.Value.Cullface == BlockFace.None;
 
-                var otherFullBlock = otherBlock.IsFullBlock(world, otherBlockPos);
-                var otherTransparency = otherBlock.IsTransparent(world, otherBlockPos);
+                    var face = entry.Key;
+                    var cullface = noCull ? face : entry.Value.Cullface;
+                    var otherBlockPos = blockPos + cullface.GetNormali();
+                    var otherBlock = world.GetBlock(otherBlockPos);
 
-                var connectionType = block.ConnectsToBlock(world, blockPos, otherBlockPos, otherBlock);
+                    var fullBlock = block.IsFullBlock(world, blockPos);
+                    var transparency = block.IsTransparent(world, blockPos);
 
-                if (connectionType == ConnectionType.Connected) continue;
-                
-                if (connectionType == ConnectionType.Undefined && otherBlock.IsVisible(world, otherBlockPos) && 
-                    otherTransparency == TransparencyType.None && fullBlock && otherFullBlock) continue;
+                    var otherFullBlock = otherBlock.IsFullBlock(world, otherBlockPos);
+                    var otherTransparency = otherBlock.IsTransparent(world, otherBlockPos);
 
-                AddFaceToVao(world, blockPos, x, y, z, block, face,
-                    transparency == TransparencyType.Transparent ? transparentVao : vao);
+                    var connectionType = block.ConnectsToBlock(world, blockPos, otherBlockPos, otherBlock);
+
+                    if (connectionType == ConnectionType.Connected) continue;
+
+                    if (!noCull && connectionType == ConnectionType.Undefined && otherBlock.IsVisible(world, otherBlockPos) &&
+                        otherTransparency == TransparencyType.None && fullBlock && otherFullBlock) continue;
+
+                    AddFaceToVao(world, blockPos, x, y, z, block, face, entry.Value,
+                        transparency == TransparencyType.Transparent ? transparentVao : vao, transform);
+                }
             }
         }
 
-        public static void AddFaceToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, BlockFace face, VertexArrayObject vao)
+        public static void AddFaceToVao(World world, Vector3i blockPos, int x, int y, int z, Block block, BlockFace face, BlockModel.FaceData data, VertexArrayObject vao, Matrix4 transform)
         {
-            var faceId = (int) face;
+            var faceId = (int) face - 1;
             var indicesOffset = vao.VertexCount;
 
-            var transform = block.GetTransform(world, blockPos, face);
-            var texture = block.GetTexture(world, blockPos, face);
-            var overlayTexture = block.GetOverlayTexture(world, blockPos, face);
-            var texCoords = block.GetTexCoords(world, blockPos, face) ?? FaceTexCoords;
-            var overlayTexCoords = block.GetOverlayTexCoords(world, blockPos, face) ?? FaceTexCoords;
-            var color = block.GetColor(world, blockPos, face).ToVector4();
-            var overlayColor = block.GetOverlayColor(world, blockPos, face).ToVector4();
+            //var transform = Matrix4.CreateScale()//Matrix4.Identity;//block.GetTransform(world, blockPos, face);
+            var texture = data.LoadedTexture;//block.GetTexture(world, blockPos, face);
+            //var overlayTexture = block.GetOverlayTexture(world, blockPos, face);
+            var texCoords = data.GetTexCoords();//block.GetTexCoords(world, blockPos, face) ?? FaceTexCoords;
+            //var overlayTexCoords = block.GetOverlayTexCoords(world, blockPos, face) ?? FaceTexCoords;
+            var color = data.TintIndex == -1 ? new Vector4(1) : block.GetTintColor(world, blockPos, data.TintIndex).ToVector4();
             var normal = face.GetNormal();
 
             if(texCoords.Length != 4) throw new Exception($"\"{block}\" invalid texture coords array length!");
@@ -84,7 +96,7 @@ namespace MinecraftClone3API.Util
 
             var vPositions = new Vector3[4];
             var vTexCoords = new Vector4[4];
-            var vOverlayTexCoords = new Vector4[4];
+            var vOverlayTexCoords = new Vector4[4]; //TODO: Remove
             var vBrightness = new Vector3[4];
 
             for (var j = 0; j < 4; j++)
@@ -100,11 +112,7 @@ namespace MinecraftClone3API.Util
                     W = texture.ArrayId
                 };
 
-                var overlayTexCoord = overlayTexture == null ? new Vector4(-1) : new Vector4(overlayTexCoords[j])
-                {
-                    Z = overlayTexture.TextureId,
-                    W = overlayTexture.ArrayId
-                };
+
 
                 //per vertex light value interpolation (smooth lighting + free ambient occlusion)
                 var brightness = CalculateBrightness(world, block, blockPos, face, vertexPosition);
@@ -113,7 +121,7 @@ namespace MinecraftClone3API.Util
 
                 vPositions[j] = position;
                 vTexCoords[j] = texCoord;
-                vOverlayTexCoords[j] = overlayTexCoord;
+                vOverlayTexCoords[j] = new Vector4(-1);
                 vBrightness[j] = brightness;
             }
 
@@ -121,9 +129,7 @@ namespace MinecraftClone3API.Util
             //https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
 
             for (var j = 0; j < 4; j++)
-                vao.Add(vPositions[j], vTexCoords[j], vOverlayTexCoords[j], new Vector4(normal),
-                    new Vector4(color.Xyz * vBrightness[j], color.W),
-                    new Vector4(overlayColor.Xyz * vBrightness[j], overlayColor.W));
+                vao.Add(vPositions[j], vTexCoords[j], new Vector4(normal), color.Xyz, vBrightness[j]);
 
             var newIndices = new uint[FaceIndices.Length];
 
@@ -143,8 +149,7 @@ namespace MinecraftClone3API.Util
 
             if (vao is SortedVertexArrayObject)
             {
-                foreach (var pos in vPositions)
-                    faceMiddle += pos;
+                faceMiddle = vPositions.Aggregate(faceMiddle, (current, pos) => current + pos);
                 faceMiddle = faceMiddle / vPositions.Length + blockPos.ToVector3() - new Vector3(x, y, z);
             }
 
@@ -154,7 +159,7 @@ namespace MinecraftClone3API.Util
         private static Vector3 CalculateBrightness(World world, Block block, Vector3i blockPos, BlockFace face, Vector3 vertexPosition)
         {
             //if its not a full opaque block return brightness of itself
-            if (!block.IsOpaqueFullBlock(world, blockPos))
+            if (!block.IsOpaqueFullBlock(world, blockPos) || !block.Model.AmbientOcclusion)
                 return LightLevelToBrightness(world.GetBlockLightLevel(blockPos).Vector3);
 
             //TODO: smooth lighting setting
@@ -163,6 +168,12 @@ namespace MinecraftClone3API.Util
             var normal = face.GetNormali();
             var pos = blockPos + normal;
             var offset = (vertexPosition * 2).ToVector3i();
+
+            if ((offset - normal * normal).LengthSquared != 2)
+            {
+                //If vertex is not a corner do not apply ambient occlusion but apply the blocks own brightness
+                return LightLevelToBrightness(world.GetBlockLightLevel(blockPos).Vector3);
+            }
 
             if (normal.X != 0)
             {
@@ -180,7 +191,7 @@ namespace MinecraftClone3API.Util
                     pos + new Vector3i(0, offset.Y, 0), pos + new Vector3i(offset.X, offset.Y, 0));
             }
 
-            throw new Exception("It's really bad if you can read this :S");
+            throw new Exception("Something is really broken if you can read this :S");
         }
 
         private static Vector3 GetSmoothLightValue(World world, Vector3i p0, Vector3i p1, Vector3i p2, Vector3i p3)
@@ -203,7 +214,7 @@ namespace MinecraftClone3API.Util
             return lightValue / 4;
         }
 
-#if true
+#if false
         private const float Base = 0.8f;
 #else
         private const float Base = 1f;

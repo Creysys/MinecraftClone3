@@ -1,4 +1,4 @@
-{   "parent": "Block",
+{   "parent": "Models/Block",
     "display": {
         "gui": {
             "rotation": [ 30, 135, 0 ],

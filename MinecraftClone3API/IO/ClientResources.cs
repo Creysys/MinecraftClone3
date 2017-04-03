@@ -10,7 +10,7 @@ namespace MinecraftClone3API.IO
 {
     public static class ClientResources
     {
-        private const string PluginDir = "Client/";
+        private const string PluginDir = "System/";
 
         public static GameWindow Window;
 
@@ -22,7 +22,10 @@ namespace MinecraftClone3API.IO
         public static Shader PointLightShader;
         public static Shader BlockOutlineShader;
 
-        public static VertexArrayObject ScreenRectVao;
+        public static SpriteVertexArrayObject ScreenRectVao;
+
+        public static BlockModel MissingModel;
+        public static BlockTexture MissingTexture;
 
         public static readonly Dictionary<Key, string> Keybindings = new Dictionary<Key, string>();
 
@@ -38,15 +41,18 @@ namespace MinecraftClone3API.IO
             PointLightShader = ResourceReader.ReadShader(PluginDir + "Shaders/PointLight");
             BlockOutlineShader = ResourceReader.ReadShader(PluginDir + "Shaders/BlockOutline");
 
-            ScreenRectVao = new VertexArrayObject();
-            ScreenRectVao.Add(new Vector3(-1, +1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(+1, +1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(-1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.Add(new Vector3(+1, -1, 0), Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero);
-            ScreenRectVao.AddFace(new uint[] {0, 2, 1, 1, 2, 3}, Vector3.Zero);
+            ScreenRectVao = new SpriteVertexArrayObject();
+            ScreenRectVao.Add(new Vector2(-1, +1), Vector2.Zero, Vector3.Zero);
+            ScreenRectVao.Add(new Vector2(+1, +1), Vector2.Zero, Vector3.Zero);
+            ScreenRectVao.Add(new Vector2(-1, -1), Vector2.Zero, Vector3.Zero);
+            ScreenRectVao.Add(new Vector2(+1, -1), Vector2.Zero, Vector3.Zero);
+            ScreenRectVao.AddFace(new uint[] {0, 2, 1, 1, 2, 3});
             ScreenRectVao.Upload();
 
             Samplers.Load();
+
+            MissingModel = ResourceReader.ReadBlockModel("System/Models/MissingModel.json");
+            MissingTexture = ResourceReader.ReadBlockTexture("System/Textures/Blocks/MissingTexture.png");
 
             //TODO: Remove
 
@@ -63,7 +69,7 @@ namespace MinecraftClone3API.IO
                 }
             }
 
-            var blockModel = ResourceReader.ReadBlockModel("Vanilla/Models/Stairs.json");
+            //var blockModel = ResourceReader.ReadBlockModel("Vanilla/Models/Stairs.json");
             Logger.Debug("lod");
         }
 

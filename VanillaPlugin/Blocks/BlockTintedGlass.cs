@@ -51,12 +51,6 @@ namespace VanillaPlugin.Blocks
             return otherBlock == this && myMeta == otherMeta ? ConnectionType.Connected : ConnectionType.Undefined;
         }
 
-        public override BlockTexture GetTexture(World world, Vector3i blockPos, BlockFace face)
-        {
-            var data = world.GetBlockData(blockPos) as BlockDataMetadata;
-            return data == null ? _textures[0] : _textures[data.Metadata];
-        }
-
         public override void OnPlaced(World world, Vector3i blockPos, EntityPlayer player)
         {
             var m = 0;
