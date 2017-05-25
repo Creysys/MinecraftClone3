@@ -103,7 +103,7 @@ namespace MinecraftClone3API.Util
             chunk.NeedsSaving = false;
         }
 
-        public static CachedChunk LoadChunk(World world, Vector3i chunkPos)
+        public static CachedChunk LoadChunk(WorldServer world, Vector3i chunkPos)
         {
             var region = ChunkToRegion(chunkPos);
             var regionFilename = Path.Combine(WorldFolder, RegionsFolder, GetRegionFilename(region));

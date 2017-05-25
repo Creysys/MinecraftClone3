@@ -6,7 +6,7 @@ namespace MinecraftClone3API.Blocks
 {
     internal class CachedChunk
     {
-        public readonly World World;
+        public readonly WorldServer World;
         public readonly Vector3i Position;
         public readonly ushort[,,] BlockIds = new ushort[Chunk.Size, Chunk.Size, Chunk.Size];
         public readonly LightLevel[,,] LightLevels = new LightLevel[Chunk.Size, Chunk.Size, Chunk.Size];
@@ -17,13 +17,13 @@ namespace MinecraftClone3API.Blocks
         public Vector3i Min = new Vector3i(Chunk.Size);
         public Vector3i Max = new Vector3i(-1);
 
-        public CachedChunk(World world, Vector3i position)
+        public CachedChunk(WorldServer world, Vector3i position)
         {
             World = world;
             Position = position;
         }
 
-        public CachedChunk(World world, Vector3i position, BinaryReader reader) : this(world, position)
+        public CachedChunk(WorldServer world, Vector3i position, BinaryReader reader) : this(world, position)
         {
             Min = new Vector3i(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
             Max = new Vector3i(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());

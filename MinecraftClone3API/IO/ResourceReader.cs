@@ -21,17 +21,17 @@ namespace MinecraftClone3API.IO
         }
 
         public static byte[] ReadBytes(string path)
-        {
+        {/*
             foreach (var pluginData in PluginManager.PluginDatas)
                 if (pluginData.Files.TryGetValue(path, out var data))
                     return data;
 
-            Logger.Error($"\"{path}\" could not be found!");
+            Logger.Error($"\"{path}\" could not be found!");*/
             return null;
         }
 
         public static bool Exists(string path)
-            => PluginManager.PluginDatas.Any(pluginData => pluginData.Files.ContainsKey(path));
+            => false;// PluginManager.PluginDatas.Any(pluginData => pluginData.Files.ContainsKey(path));
 
         public static string ReadString(string path) => Encoding.Default.GetString(ReadBytes(path));
 

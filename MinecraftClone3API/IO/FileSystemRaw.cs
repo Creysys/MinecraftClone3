@@ -12,23 +12,32 @@ namespace MinecraftClone3API.IO
             _dir = dir;
         }
 
-        public override Dictionary<string, byte[]> ReadAllFiles()
+        public override List<string> GetFiles()
         {
-            var dic = new Dictionary<string, byte[]>();
-            AddDir(dic, _dir, _dir);
-            return dic;
+            var list = new List<string>();
+            AddDir(list, _dir, _dir);
+            return list;
         }
 
-        private void AddDir(Dictionary<string, byte[]> dic, DirectoryInfo currentDir, DirectoryInfo rootDir)
+        public override byte[] ReadFile(string path)
+        {
+            var fullPath = Path.Combine(_dir.FullName, path.Replace("/", "\\"));
+            if (!File.Exists(fullPath))
+                throw new FileNotFoundException("File could not be found in the raw file system!", fullPath);
+            return File.ReadAllBytes(fullPath);
+        }
+
+
+        private void AddDir(List<string> list, DirectoryInfo currentDir, DirectoryInfo rootDir)
         {
             foreach (var file in currentDir.EnumerateFiles())
             {
                 var relativePath = file.FullName.Substring(rootDir.FullName.Length + 1).Replace("\\", "/");
-                dic.Add(relativePath, File.ReadAllBytes(file.FullName));
+                list.Add(relativePath);
             }
 
             foreach (var dir in currentDir.EnumerateDirectories())
-                AddDir(dic, dir, rootDir);
+                AddDir(list, dir, rootDir);
         }
     }
 }

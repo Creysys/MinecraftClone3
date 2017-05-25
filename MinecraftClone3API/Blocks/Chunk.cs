@@ -15,7 +15,7 @@ namespace MinecraftClone3API.Blocks
         public Vector3 Middle => (Position * Size + new Vector3i(Size / 2)).ToVector3();
         public bool HasTransparency => _transparentVao.UploadedCount > 0;
 
-        public readonly World World;
+        public readonly WorldServer World;
         public readonly Vector3i Position;
 
         public bool Updated;
@@ -34,7 +34,7 @@ namespace MinecraftClone3API.Blocks
         private readonly SortedVertexArrayObject _transparentVao = new SortedVertexArrayObject();
 
 
-        public Chunk(World world, Vector3i position)
+        public Chunk(WorldServer world, Vector3i position)
         {
             World = world;
             Position = position;

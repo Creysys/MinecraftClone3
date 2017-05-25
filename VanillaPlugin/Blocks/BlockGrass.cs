@@ -11,7 +11,7 @@ namespace VanillaPlugin.Blocks
         {
         }
 
-        public override Color4 GetTintColor(World world, Vector3i blockPos, int tintId)
+        public override Color4 GetTintColor(WorldServer world, Vector3i blockPos, int tintId)
             => tintId == 0 ? GetCurrentColor(blockPos) : Color4.White;
         private Color4 GetCurrentColor(Vector3i blockPos)
         {

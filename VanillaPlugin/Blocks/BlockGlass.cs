@@ -9,9 +9,9 @@ namespace VanillaPlugin.Blocks
         {
         }
 
-        public override TransparencyType IsTransparent(World world, Vector3i blockPos) => TransparencyType.Cutoff;
+        public override TransparencyType IsTransparent(WorldServer world, Vector3i blockPos) => TransparencyType.Cutoff;
 
-        public override ConnectionType ConnectsToBlock(World world, Vector3i blockPos, Vector3i otherBlockPos,
+        public override ConnectionType ConnectsToBlock(WorldServer world, Vector3i blockPos, Vector3i otherBlockPos,
             Block otherBlock) => otherBlock == this ? ConnectionType.Connected : ConnectionType.Undefined;
     }
 }

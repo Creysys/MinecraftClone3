@@ -19,7 +19,7 @@ namespace MinecraftClone3API.Graphics
         public const float SortDistance = 128;
         public const float SortDistanceSq = SortDistance * SortDistance;
 
-        public static void RenderWorld(World world, Matrix4 projection)
+        public static void RenderWorld(WorldServer world, Matrix4 projection)
         {
             var viewProjection = PlayerController.Camera.View * projection;
             var viewFrustum = Frustum.FromViewProjection(viewProjection);
@@ -35,7 +35,7 @@ namespace MinecraftClone3API.Graphics
             DrawComposition();
         }
 
-        private static void DrawGeometryFramebuffer(World world, Camera camera, Matrix4 projection, Frustum viewFrustum)
+        private static void DrawGeometryFramebuffer(WorldServer world, Camera camera, Matrix4 projection, Frustum viewFrustum)
         {
             var chunksToDraw = new List<Chunk>(1024);
             var transparentSortedChunks = new List<Chunk>(1024);
@@ -122,7 +122,7 @@ namespace MinecraftClone3API.Graphics
             ClientResources.GeometryFramebuffer.Unbind(ClientResources.Window.Width, ClientResources.Window.Height);
         }
 
-        private static void DrawLightFramebuffer(World world, Matrix4 viewProjectionInv, Frustum viewFrustum)
+        private static void DrawLightFramebuffer(WorldServer world, Matrix4 viewProjectionInv, Frustum viewFrustum)
         {
             //TODO: Lighting?
 

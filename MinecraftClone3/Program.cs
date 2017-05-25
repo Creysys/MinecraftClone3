@@ -14,11 +14,12 @@ namespace MinecraftClone3
 {
     internal class Program
     {
+
         private static readonly EntityPlayer _playerEntity = new EntityPlayer {Position = new Vector3(0, 2, 0)};
 
         public static GameWindow Window;
 
-        private static World _world;
+        private static WorldServer _world;
         private static Matrix4 _projection;
         private static int _fpsCounter;
         private static double _fpsTimer;
@@ -55,7 +56,7 @@ namespace MinecraftClone3
 
             BlockTextureManager.Upload();
 
-            _world = new World();
+            _world = new WorldServer();
             _world.PlayerEntities.Add(_playerEntity);
 
             _projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60), (float)Window.Width/Window.Height, 0.01f, 512);

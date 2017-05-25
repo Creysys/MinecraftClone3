@@ -6,11 +6,12 @@ namespace MinecraftClone3API.IO
     {
         public readonly string Name;
 
-        protected FileSystem(string path)
+        protected FileSystem(string name)
         {
-            Name = path;
+            Name = name;
         }
 
-        public abstract Dictionary<string, byte[]> ReadAllFiles();
+        public abstract List<string> GetFiles();
+        public abstract byte[] ReadFile(string path);
     }
 }
