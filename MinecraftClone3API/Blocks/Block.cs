@@ -1,4 +1,5 @@
-﻿using MinecraftClone3API.Entities;
+﻿using MinecraftClone3API.Client;
+using MinecraftClone3API.Entities;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
@@ -55,6 +56,10 @@ namespace MinecraftClone3API.Blocks
 
         public virtual int OnLightPassThrough(WorldBase world, Vector3i blockPos, int lightLevel, int color)
             => lightLevel - 1;
+
+        public virtual string GetUnlocalizedName(WorldBase world, Vector3i blockPos) => Name;
+
+        public virtual string GetName(WorldBase world, Vector3i blockPos) => I18N.Get(GetUnlocalizedName(world, blockPos));
 
         public bool IsOpaqueFullBlock(WorldBase world, Vector3i blockPos) =>
             IsVisible(world, blockPos) && IsFullBlock(world, blockPos) &&

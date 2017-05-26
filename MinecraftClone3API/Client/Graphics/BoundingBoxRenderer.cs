@@ -1,4 +1,5 @@
-﻿using MinecraftClone3API.IO;
+﻿using MinecraftClone3API.Client;
+using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Graphics;

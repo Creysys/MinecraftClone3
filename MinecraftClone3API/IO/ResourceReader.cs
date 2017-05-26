@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.IO;
 using System.Text;
+using MinecraftClone3API.Client;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.Util;
 
@@ -12,7 +13,7 @@ namespace MinecraftClone3API.IO
         private static Dictionary<string, BlockTexture> _cachedTextures;
         private static Dictionary<string, BlockModel> _cachedModels;
 
-        internal static void ClearCache()
+        public static void ClearCache()
         {
             _cachedModels = new Dictionary<string, BlockModel>();
             _cachedTextures = new Dictionary<string, BlockTexture>();
@@ -26,6 +27,9 @@ namespace MinecraftClone3API.IO
 
         public static TextureData ReadTextureData(string path)
             => new TextureData((Bitmap) Image.FromStream(new MemoryStream(ReadBytes(path))));
+
+        public static Texture ReadTexture(string path)
+            => new Texture(ReadTextureData(path));
 
         public static BlockTexture ReadBlockTexture(string path)
         {

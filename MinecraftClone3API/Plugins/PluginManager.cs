@@ -14,6 +14,7 @@ namespace MinecraftClone3API.Plugins
         private const string PluginInfoFile = "PluginInfo.json";
 
         private static readonly Dictionary<string, PluginContext> PluginDlls = new Dictionary<string, PluginContext>();
+        private static readonly List<string> LoadedPlugins = new List<string>();
 
         internal static void LoadResources(Action<float, string> progress)
         {
@@ -65,6 +66,9 @@ namespace MinecraftClone3API.Plugins
 
             var pluginInfoFileData = fileSystem.ReadFile(PluginInfoFile);
             var pluginInfo = JsonConvert.DeserializeObject<PluginInfo>(Encoding.UTF8.GetString(pluginInfoFileData));
+
+            if (LoadedPlugins.Contains(pluginInfo.PluginName)) return;
+            LoadedPlugins.Add(pluginInfo.PluginName);
 
             if (pluginInfo.PluginDlls == null) return;
             foreach (var dllPath in pluginInfo.PluginDlls)

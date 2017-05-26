@@ -55,8 +55,12 @@
     <Compile Include="Blocks\BlockData.cs" />
     <Compile Include="Blocks\WorldBase.cs" />
     <Compile Include="Client\Blocks\WorldClient.cs" />
+    <Compile Include="Client\Graphics\GuiRenderer.cs" />
+    <Compile Include="Client\Graphics\ScaledResolution.cs" />
+    <Compile Include="Client\GUI\GuiElementBase.cs" />
     <Compile Include="Client\StateSystem\StateBase.cs" />
     <Compile Include="Client\StateSystem\StateEngine.cs" />
+    <Compile Include="Client\GUI\GuiBase.cs" />
     <Compile Include="Entities\PlayerController.cs" />
     <Compile Include="Client\Graphics\BlockModel.cs" />
     <Compile Include="Client\Graphics\BlockTextureManager.cs" />
@@ -110,6 +114,7 @@
     <Compile Include="Util\I18N.cs" />
     <Compile Include="Util\OpenSimplexNoise.cs" />
     <Compile Include="Util\Plane.cs" />
+    <Compile Include="Util\Rectangle.cs" />
     <Compile Include="Util\Registry.cs" />
     <Compile Include="Util\RegistryEntry.cs" />
     <Compile Include="Util\BlockRaytraceResult.cs" />

@@ -1,5 +1,6 @@
 ﻿using System;
 using MinecraftClone3API.Blocks;
+using MinecraftClone3API.Client;
 using MinecraftClone3API.Graphics;
 using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;

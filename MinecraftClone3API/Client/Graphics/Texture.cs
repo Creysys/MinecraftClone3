@@ -20,10 +20,8 @@ namespace MinecraftClone3API.Graphics
             Height = height;
         }
 
-        public Texture(string filename)
+        public Texture(TextureData data)
         {
-            var data = new TextureData(filename);
-
             Id = GL.GenTexture();
             Width = data.Width;
             Height = data.Height;

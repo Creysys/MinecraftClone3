@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MinecraftClone3API.Blocks;
+using MinecraftClone3API.Client;
 using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
 using Newtonsoft.Json;
@@ -146,9 +147,7 @@ namespace MinecraftClone3API.Graphics
         private static List<string> GetRelativePaths(string root, string path, string extension)
         {
             //Find parent file relatively
-            var paths = new List<string>();
-            paths.Add(path);
-            paths.Add(path + extension);
+            var paths = new List<string> {path, path + extension};
 
             var i = root.LastIndexOf("/", StringComparison.Ordinal) + 1;
             paths.Add(root.Substring(0, i) + path);

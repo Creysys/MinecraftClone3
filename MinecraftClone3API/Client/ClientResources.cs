@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using MinecraftClone3API.Graphics;
+using MinecraftClone3API.IO;
 using MinecraftClone3API.Util;
 using OpenTK;
 using OpenTK.Input;
 
-namespace MinecraftClone3API.IO
+namespace MinecraftClone3API.Client
 {
     public static class ClientResources
     {
@@ -21,8 +22,11 @@ namespace MinecraftClone3API.IO
         public static Shader CompositionShader;
         public static Shader PointLightShader;
         public static Shader BlockOutlineShader;
+        public static Shader SpriteShader;
 
         public static SpriteVertexArrayObject ScreenRectVao;
+
+        public static Texture LoadingTexture;
 
         public static BlockModel MissingModel;
         public static BlockTexture MissingTexture;
@@ -40,6 +44,7 @@ namespace MinecraftClone3API.IO
             CompositionShader = ResourceReader.ReadShader(PluginDir + "Shaders/Composition");
             PointLightShader = ResourceReader.ReadShader(PluginDir + "Shaders/PointLight");
             BlockOutlineShader = ResourceReader.ReadShader(PluginDir + "Shaders/BlockOutline");
+            SpriteShader = ResourceReader.ReadShader(PluginDir + "Shaders/Sprite");
 
             ScreenRectVao = new SpriteVertexArrayObject();
             ScreenRectVao.Add(new Vector2(-1, +1), Vector2.Zero, Vector3.Zero);

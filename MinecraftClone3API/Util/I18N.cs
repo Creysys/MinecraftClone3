@@ -6,6 +6,8 @@ namespace MinecraftClone3API.Util
 {
     public static class I18N
     {
+        private const string OrdinalLang = "en-US";
+
         private static readonly Dictionary<string, string> Entries = new Dictionary<string, string>();
 
         private static string _currentLang = "en-US";
@@ -43,6 +45,7 @@ namespace MinecraftClone3API.Util
             ? value
             : key;
         public static string Get(string key) => GetLang(_currentLang, key);
+        public static string GetOrdinal(string key) => GetLang(OrdinalLang, key);
 
         private static string MakeKey(string lang, string key) => $"{lang}:{key}";
     }

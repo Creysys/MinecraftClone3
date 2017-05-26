@@ -14,11 +14,6 @@ namespace MinecraftClone3API.Graphics
         public int Height => Data.Height;
         public IntPtr DataPtr => Data.Scan0;
 
-        public TextureData(string filename) : this((Bitmap) Image.FromFile(filename))
-        {
-            _ownsBmp = true;
-        }
-
         public TextureData(Bitmap bitmap)
         {
             _bmp = bitmap;
