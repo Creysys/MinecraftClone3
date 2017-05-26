@@ -15,6 +15,6 @@ namespace VanillaPlugin.Blocks
             Model = ResourceReader.ReadBlockModel(modelPath);
         }
 
-        public override bool IsFullBlock(WorldServer world, Vector3i blockPos) => _fullBlock;
+        public override bool IsFullBlock(WorldBase world, Vector3i blockPos) => _fullBlock;
     }
 }

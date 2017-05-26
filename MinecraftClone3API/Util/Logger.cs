@@ -9,9 +9,8 @@ namespace MinecraftClone3API.Util
         public static void Error(string message) => Log(ConsoleColor.Red, "Error", message);
 
         public static void Exception(Exception ex)
-            =>
-                Log(ConsoleColor.Yellow, "Exception",
-                    $"An unexpected exception has been thrown: {ex.Message}\n\n{ex.StackTrace}\n");
+            => Log(ConsoleColor.Yellow, "Exception",
+                $"An unexpected exception has been thrown: {ex}\n\n{ex.StackTrace}\n");
 
         private static void Log(ConsoleColor color, string level, string message)
         {

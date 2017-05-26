@@ -7,6 +7,11 @@ namespace VanillaPlugin
     [Plugin("Vanilla", "1.0", "Vanilla")]
     public class VanillaPlugin : IPlugin
     {
+        public void LoadResources(PluginContext context)
+        {
+            System.Threading.Thread.Sleep(4000);
+        }
+
         public void PreLoad(PluginContext context)
         {
         }

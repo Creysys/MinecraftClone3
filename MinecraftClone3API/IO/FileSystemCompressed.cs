@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 
 namespace MinecraftClone3API.IO
 {
-    internal class FileSystemCompressed : FileSystem
+    public class FileSystemCompressed : FileSystem
     {
         private readonly ZipArchive _archive;
 

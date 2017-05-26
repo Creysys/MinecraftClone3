@@ -2,7 +2,7 @@
 
 namespace MinecraftClone3API.IO
 {
-    internal abstract class FileSystem
+    public abstract class FileSystem
     {
         public readonly string Name;
 

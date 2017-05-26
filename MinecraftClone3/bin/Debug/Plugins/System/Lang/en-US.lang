@@ -1,0 +1,8 @@
+#Language name
+en-US=English (United States)
+
+#Resource loading
+system.loading.resources=Loading resources of
+system.loading.preLoad=Pre loading
+system.loading.load=Loading
+system.loading.postLoad=Post loading

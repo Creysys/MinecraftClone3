@@ -38,8 +38,8 @@ namespace VanillaPlugin.Blocks
             }
         }
 
-        public override TransparencyType IsTransparent(WorldServer world, Vector3i blockPos) => TransparencyType.Transparent;
-        public override ConnectionType ConnectsToBlock(WorldServer world, Vector3i blockPos, Vector3i otherBlockPos,
+        public override TransparencyType IsTransparent(WorldBase world, Vector3i blockPos) => TransparencyType.Transparent;
+        public override ConnectionType ConnectsToBlock(WorldBase world, Vector3i blockPos, Vector3i otherBlockPos,
             Block otherBlock)
         {
             var data = world.GetBlockData(blockPos) as BlockDataMetadata;
@@ -51,7 +51,7 @@ namespace VanillaPlugin.Blocks
             return otherBlock == this && myMeta == otherMeta ? ConnectionType.Connected : ConnectionType.Undefined;
         }
 
-        public override void OnPlaced(WorldServer world, Vector3i blockPos, EntityPlayer player)
+        public override void OnPlaced(WorldBase world, Vector3i blockPos, EntityPlayer player)
         {
             var m = 0;
             var ks = Keyboard.GetState();
@@ -66,7 +66,7 @@ namespace VanillaPlugin.Blocks
             world.SetBlockData(blockPos, new BlockDataMetadata(m));
         }
 
-        public override int OnLightPassThrough(WorldServer world, Vector3i blockPos, int lightLevel, int color)
+        public override int OnLightPassThrough(WorldBase world, Vector3i blockPos, int lightLevel, int color)
         {
             var data = world.GetBlockData(blockPos) as BlockDataMetadata;
             var i = data?.Metadata ?? 0;

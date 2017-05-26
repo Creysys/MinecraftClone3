@@ -1,0 +1,12 @@
+{
+  "Entries": [
+    {
+      "Name": "System",
+      "Enabled": true
+    },
+    {
+      "Name": "VanillaPlugin",
+      "Enabled": true
+    }
+  ]
+}

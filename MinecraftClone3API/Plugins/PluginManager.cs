@@ -3,7 +3,6 @@ using MinecraftClone3API.Util;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -16,21 +15,48 @@ namespace MinecraftClone3API.Plugins
 
         private static readonly Dictionary<string, PluginContext> PluginDlls = new Dictionary<string, PluginContext>();
 
-        public static void AddPlugin(DirectoryInfo dir) => AddPlugin(new FileSystemRaw(dir));
-
-        public static void AddPlugin(FileInfo file) => AddPlugin(new FileSystemCompressed(file));
-
-        public static void LoadPlugins()
+        internal static void LoadResources(Action<float, string> progress)
         {
-            foreach (var plugin in PluginDlls) plugin.Value.Plugin.PreLoad(plugin.Value);
-            foreach (var plugin in PluginDlls) plugin.Value.Plugin.Load(plugin.Value);
-            foreach (var plugin in PluginDlls) plugin.Value.Plugin.PostLoad(plugin.Value);
+            var part = 1f / PluginDlls.Count;
+            var total = 0f;
+            foreach (var plugin in PluginDlls)
+            {
+                progress(total, plugin.Value.PluginAttribute.Name);
+                total += part;
+                plugin.Value.Plugin.LoadResources(plugin.Value);
+            }
         }
 
-        private static void AddPlugin(FileSystem fileSystem)
+        public static void LoadPlugins(Action<float, string, string> progress)
+        {
+            var part = 0.3333333F / PluginDlls.Count;
+            var total = 0f;
+            foreach (var plugin in PluginDlls)
+            {
+                progress(total, "system.loading.preLoad", plugin.Value.PluginAttribute.Name);
+                total += part;
+                plugin.Value.Plugin.PreLoad(plugin.Value);
+            }
+
+            foreach (var plugin in PluginDlls)
+            {
+                progress(total, "system.loading.load", plugin.Value.PluginAttribute.Name);
+                total += part;
+                plugin.Value.Plugin.Load(plugin.Value);
+            }
+
+            foreach (var plugin in PluginDlls)
+            {
+                progress(total, "system.loading.postLoad", plugin.Value.PluginAttribute.Name);
+                total += part;
+                plugin.Value.Plugin.PostLoad(plugin.Value);
+            }
+        }
+
+        public static void AddPlugin(FileSystem fileSystem)
         {
             var pluginFiles = fileSystem.GetFiles();
-            ResourceManager.AddAssetsIndices(fileSystem, pluginFiles);
+            ResourceManager.AddFileSystem(fileSystem, pluginFiles);
             if (!pluginFiles.Contains(PluginInfoFile))
             {
                 Logger.Error($"Plugin \"{fileSystem.Name}\" does not have an info file and was ignored!");
@@ -38,7 +64,7 @@ namespace MinecraftClone3API.Plugins
             }
 
             var pluginInfoFileData = fileSystem.ReadFile(PluginInfoFile);
-            var pluginInfo = JsonConvert.DeserializeObject<PluginInfo>(Encoding.Default.GetString(pluginInfoFileData));
+            var pluginInfo = JsonConvert.DeserializeObject<PluginInfo>(Encoding.UTF8.GetString(pluginInfoFileData));
 
             if (pluginInfo.PluginDlls == null) return;
             foreach (var dllPath in pluginInfo.PluginDlls)
@@ -49,19 +75,32 @@ namespace MinecraftClone3API.Plugins
                     continue;
                 }
 
-                var dllData = fileSystem.ReadFile(dllPath);
-                var assembly = Assembly.Load(dllData);
-                foreach (var type in assembly.GetTypes().Where(t => typeof(IPlugin).IsAssignableFrom(t)))
+                try
                 {
-                    var attributes = type.GetCustomAttributes(typeof(PluginAttribute), false);
-                    if (attributes.Length != 1) continue;
+                    var dllData = fileSystem.ReadFile(dllPath);
+                    var assembly = Assembly.Load(dllData);
+                    foreach (var type in assembly.GetTypes().Where(t => typeof(IPlugin).IsAssignableFrom(t)))
+                    {
+                        var attributes = type.GetCustomAttributes(typeof(PluginAttribute), false);
+                        if (attributes.Length != 1) continue;
 
-                    var plugin = (IPlugin)Activator.CreateInstance(type);
-                    var attribute = (PluginAttribute)attributes[0];
-                    var pluginContext = new PluginContext(attribute, plugin);
-                    PluginDlls.Add(attribute.Id, pluginContext);
+                        var plugin = (IPlugin) Activator.CreateInstance(type);
+                        var attribute = (PluginAttribute) attributes[0];
+                        var pluginContext = new PluginContext(attribute, plugin);
+                        PluginDlls.Add(attribute.Id, pluginContext);
 
-                    Logger.Info($"Plugin dll \"{attribute.Id}\" loaded");
+                        Logger.Info($"Plugin dll \"{attribute.Id}\" added");
+                    }
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    Logger.Error($"There is a problem with plugin dll \"{dllPath}\" in \"{pluginInfo.PluginName}\":");
+                    Logger.Exception(ex.LoaderExceptions[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Error loading plugin dll:\"{dllPath}\" in \"{pluginInfo.PluginName}\"");
+                    Logger.Exception(ex);
                 }
             }
         }

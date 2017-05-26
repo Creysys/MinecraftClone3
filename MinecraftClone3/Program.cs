@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using MinecraftClone3API.Blocks;
 using MinecraftClone3API.Entities;
@@ -26,6 +27,9 @@ namespace MinecraftClone3
 
         private static void Main(string[] args)
         {
+            //Make exceptions be english (wtf microsoft???)
+            System.Threading.Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
             Window = new GameWindow(1280, 720, GraphicsMode.Default, "MinecraftClone3")
             {
                 CursorVisible = false,
@@ -43,14 +47,19 @@ namespace MinecraftClone3
             //Load plugins in "Plugins" dir
             var pluginsDir = new DirectoryInfo("Plugins");
             foreach (var dir in pluginsDir.EnumerateDirectories())
-                PluginManager.AddPlugin(dir);
+                PluginManager.AddPlugin(new FileSystemRaw(dir));
             foreach (var file in pluginsDir.EnumerateFiles())
-                PluginManager.AddPlugin(file);
+                PluginManager.AddPlugin(new FileSystemCompressed(file));
+            ResourceManager.Load(
+                (total, state, plugin) => Logger.Debug($"{I18N.Get(state)} {plugin} ({(int) (total * 100)})"));
+
+            PluginManager.LoadPlugins(
+                (total, state, plugin) => Logger.Debug($"{I18N.Get(state)} {plugin} ({(int) (total * 100)})"));
 
             ClientResources.Load(Window);
 
             PlayerController.SetEntity(_playerEntity);
-            PluginManager.LoadPlugins();
+            PluginManager.LoadPlugins((total, state, plugin) => { });
 
             BoundingBoxRenderer.Load();
 

@@ -13,10 +13,10 @@ namespace VanillaPlugin.Blocks
             Model = ResourceReader.ReadBlockModel("Vanilla/Models/Torch.json");
         }
 
-        public override bool IsFullBlock(WorldServer world, Vector3i blockPos) => false;
-        public override bool CanPassThrough(WorldServer world, Vector3i blockPos) => true;
+        public override bool IsFullBlock(WorldBase world, Vector3i blockPos) => false;
+        public override bool CanPassThrough(WorldBase world, Vector3i blockPos) => true;
 
-        public override LightLevel GetLightLevel(WorldServer world, Vector3i blockPos)
+        public override LightLevel GetLightLevel(WorldBase world, Vector3i blockPos)
         {
             var l = new LightLevel(15, 11, 11);
             var ks = Keyboard.GetState();

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace MinecraftClone3API.IO
 {
-    internal class FileSystemRaw : FileSystem
+    public class FileSystemRaw : FileSystem
     {
         private readonly DirectoryInfo _dir;
 

@@ -107,6 +107,7 @@
     <Compile Include="Client\Graphics\TextureData.cs" />
     <Compile Include="Client\Graphics\VertexArrayObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Util\I18N.cs" />
     <Compile Include="Util\OpenSimplexNoise.cs" />
     <Compile Include="Util\Plane.cs" />
     <Compile Include="Util\Registry.cs" />
