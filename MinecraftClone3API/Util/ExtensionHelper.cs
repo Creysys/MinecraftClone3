@@ -16,7 +16,7 @@ namespace MinecraftClone3API.Util
 
             var listMax = lists.Aggregate(0, (max, list) => Math.Max(max, list.Count));
             for(var i = 0; i < listMax; i++)
-                ret.AddRange(from list in lists where list.Count > i select list[i]);
+                ret.AddRange(lists.Where(list => list.Count > i).Select(list => list[i]));
 
             return ret;
         }

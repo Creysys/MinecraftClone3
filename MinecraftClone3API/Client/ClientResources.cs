@@ -73,9 +73,6 @@ namespace MinecraftClone3API.Client
                     Keybindings.Add(key, splits[1]);
                 }
             }
-
-            //var blockModel = ResourceReader.ReadBlockModel("Vanilla/Models/Stairs.json");
-            Logger.Debug("lod");
         }
 
         private static void ResizeFrameBuffers()

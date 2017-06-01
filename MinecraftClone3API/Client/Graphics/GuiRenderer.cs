@@ -7,7 +7,7 @@ namespace MinecraftClone3API.Client.Graphics
 {
     public static class GuiRenderer
     {
-        public static void DrawTexture(Texture texture, Rectangle rect, Rectangle uvRect, bool gui)
+        public static void DrawTexture(Texture texture, Rectangle rect, Rectangle? uvRect, bool gui = true)
         {
             //Convert pixel space to normalized coords (0)-(1)
             var r = new Vector4(rect.MinX, rect.MinY, rect.MaxX, rect.MaxY);
@@ -16,8 +16,9 @@ namespace MinecraftClone3API.Client.Graphics
                 ScaledResolution.PixelSize.X, ScaledResolution.PixelSize.Y,
                 ScaledResolution.PixelSize.X, ScaledResolution.PixelSize.Y);
 
-            var uvrect = new Vector4((float) uvRect.MinX / texture.Width, (float) uvRect.MinY / texture.Height,
-                (float) uvRect.MaxX / texture.Width, (float) uvRect.MaxY / texture.Height);
+            uvRect = uvRect ?? new Rectangle(0, 0, texture.Width, texture.Height);
+            var uvrect = new Vector4((float) uvRect.Value.MinX / texture.Width, (float) uvRect.Value.MinY / texture.Height,
+                (float) uvRect.Value.MaxX / texture.Width, (float) uvRect.Value.MaxY / texture.Height);
 
             if (gui)
                 DrawTexture(texture, (ScaledResolution.GuiScale * r + new Vector4(ScaledResolution.GuiOffset.X,

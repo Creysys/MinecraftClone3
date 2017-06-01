@@ -93,7 +93,7 @@ namespace MinecraftClone3
             _fpsTimer += frameEventArgs.Time;
             if (_fpsTimer >= 1)
             {
-                Logger.Debug("FPS: " + _fpsCounter / 1f);
+                //Logger.Debug("FPS: " + _fpsCounter / 1f);
                 _fpsTimer -= 1;
                 _fpsCounter = 0;
 

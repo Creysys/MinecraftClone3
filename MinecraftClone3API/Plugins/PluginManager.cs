@@ -16,13 +16,18 @@ namespace MinecraftClone3API.Plugins
         private static readonly Dictionary<string, PluginContext> PluginDlls = new Dictionary<string, PluginContext>();
         private static readonly List<string> LoadedPlugins = new List<string>();
 
-        internal static void LoadResources(Action<float, string> progress)
+        public static void LoadResources(Action<float, string, string> progress)
         {
+            I18N.Load(t => progress(t * 0.5f, "Loading", "Translations"));
+
+            progress(0.5f, "system.loading.resources.clearCache", "");
+            ResourceReader.ClearCache();
+
             var part = 1f / PluginDlls.Count;
             var total = 0f;
             foreach (var plugin in PluginDlls)
             {
-                progress(total, plugin.Value.PluginAttribute.Name);
+                progress(0.5f + total * 0.5f, "system.loading.resources.plugin", plugin.Value.PluginAttribute.Name);
                 total += part;
                 plugin.Value.Plugin.LoadResources(plugin.Value);
             }

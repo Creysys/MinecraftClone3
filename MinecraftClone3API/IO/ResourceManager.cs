@@ -33,13 +33,6 @@ namespace MinecraftClone3API.IO
 
         internal static readonly List<LangLine> LangEntries = new List<LangLine>();
 
-        public static void Load(Action<float, string, string> progress)
-        {
-            I18N.Load(t => progress(t * 0.5f, "Loading", "Translations"));
-            ResourceReader.ClearCache();
-            PluginManager.LoadResources((total, plugin) => progress(0.5f + total * 0.5f, "system.loading.resources", plugin));
-        }
-
         internal static void AddFileSystem(FileSystem fileSystem, List<string> pluginFiles)
         {
             if (!File.Exists(ResourceSettingsFile))
